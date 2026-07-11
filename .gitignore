@@ -1,0 +1,23 @@
+node_modules/
+dist/
+**/__pycache__/
+*.pyc
+
+# dotori-engine .env (Anthropic key)
+.env*
+
+# oh-my-claudecode state/logs
+.omc/
+.gstack/
+.DS_Store
+.vercel
+
+# brainstorming visual companion sessions
+.superpowers/
+
+# but keep env templates
+!.env.example
+!**/.env.example
+
+# LLM eval transcripts
+eval-output/

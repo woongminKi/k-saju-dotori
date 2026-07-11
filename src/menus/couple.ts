@@ -3,7 +3,7 @@ import { READING_PROMPT_VERSION } from '../reading/prompts/frame-en-v1';
 import type { MenuInput, MenuResult, MenuDeps } from './types';
 import { buildMenuSystemBlocks, buildMenuPairUserPrompt } from './prompts-en';
 import { generateSection } from './_generate-section';
-import { buildTeaser } from './teaser';
+import { buildTeaserEn } from './teaser-en';
 import { applyPaywall } from './paywall';
 
 /** 궁합 — 두 사람 요약 비교 단일 섹션. (두 풀이 전체 생성 대신 합성 1콜 — YAGNI) */
@@ -20,7 +20,7 @@ export async function runCouple(
   const result: MenuResult = {
     menu: 'couple',
     sections,
-    teaser: buildTeaser(sections),
+    teaser: buildTeaserEn(sections),
     locked: false,
     promptVersion: READING_PROMPT_VERSION,
     partial: !section.ok,

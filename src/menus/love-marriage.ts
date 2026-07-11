@@ -3,7 +3,7 @@ import { READING_PROMPT_VERSION } from '../reading/prompts/frame-en-v1';
 import type { MenuInput, MenuResult, MenuDeps } from './types';
 import { buildMenuSystemBlocks, buildMenuUserPrompt } from './prompts-en';
 import { generateSection } from './_generate-section';
-import { buildTeaser } from './teaser';
+import { buildTeaserEn } from './teaser-en';
 import { applyPaywall } from './paywall';
 
 /** 연애·결혼운 — 본인 사주 단독, 배우자성·일지·도화/홍염 중심 단일 섹션. */
@@ -19,7 +19,7 @@ export async function runLoveMarriage(
   const result: MenuResult = {
     menu: 'love-marriage',
     sections,
-    teaser: buildTeaser(sections),
+    teaser: buildTeaserEn(sections),
     locked: false,
     promptVersion: READING_PROMPT_VERSION,
     partial: !section.ok,

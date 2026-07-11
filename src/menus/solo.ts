@@ -1,6 +1,6 @@
 import { startReading } from '../reading/generate';
 import type { MenuInput, MenuResult, MenuDeps, MenuSection } from './types';
-import { buildTeaser } from './teaser';
+import { buildTeaserEn } from './teaser-en';
 import { applyPaywall } from './paywall';
 
 export interface StartedMenuSection {
@@ -46,7 +46,7 @@ export function startSolo(
     const full: MenuResult = {
       menu: 'solo',
       sections: secs,
-      teaser: buildTeaser(secs),
+      teaser: buildTeaserEn(secs),
       locked: false,
       promptVersion: reading.promptVersion,
       partial: reading.partial,

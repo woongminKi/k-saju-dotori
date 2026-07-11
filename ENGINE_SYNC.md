@@ -429,4 +429,41 @@ before AND after writing) before writing the value.
 
 - `pnpm typecheck` (`tsc --noEmit`): passes, 0 errors.
 - `pnpm test` (`vitest run`): **33 test files passed, 236 tests passed, 0 failed.**
+
+---
+
+# Phase 2 closeout — 2 small src/-side items (2026-07-11)
+
+## 1. `src/compatibility/teaser-en.ts` (new)
+
+Resolves the Phase 0 deviation #3 follow-up ("if a compatibility-tier free teaser is wanted in
+English, it needs its own `-en` stub"). English tier copy for all 4 `CompatTier` values, warm/
+playful/curiosity-gap voice, mirroring the Korean `teaser.ts`'s export shape
+(`tierTeaser(tier): string` → `tierTeaserEn(tier): string`). Wired into
+`src/compatibility/index.ts`'s exports (`export { tierTeaserEn } from './teaser-en'`). Tested in
+`src/compatibility/__tests__/teaser-en.test.ts` (2 tests: non-empty + no-CJK-leak per tier, and
+all 4 tiers have distinct copy).
+
+## 2. `src/menus/teaser.ts` audit — found a real gap, fixed
+
+Audited whether `menus/teaser.ts` (kept verbatim in Phase 0 as an addition — see deviation #2)
+could leak Korean text to an English user. It can: its no-ok-section fallback string
+(`'풀이를 준비 중임. 잠시 후 다시 시도해줘.'`) is returned whenever every section in a menu result
+failed to generate (e.g. an LLM outage exhausts every retry in `_generate-section.ts`/
+`generate.ts`). The Phase 2 eval passed with 0 CJK leaks only because none of its 50 live calls
+happened to hit that all-failure branch — the code path itself was always reachable in
+production, the eval just didn't exercise it.
+
+Fixed with a new sibling `src/menus/teaser-en.ts` (`buildTeaserEn`, English fallback: `'Your
+reading is still coming together — try again in a moment.'`), and rewired all 4 runners
+(`solo.ts`, `couple.ts`, `love-marriage.ts`, `career.ts`) to import `buildTeaserEn` from
+`./teaser-en` instead of `buildTeaser` from `./teaser`. `menus/teaser.ts` itself is untouched
+(still verbatim, still has its own passing Korean test) — it's simply no longer imported by any
+of the copied runners. Tested in `src/menus/__tests__/teaser-en.test.ts` (3 tests, including one
+asserting the fallback string specifically, with a `hasCjkLeak` check on it).
+
+## Verification (Phase 2 closeout, 2026-07-11)
+
+- `pnpm typecheck` (`tsc --noEmit`): passes, 0 errors.
+- `pnpm test` (`vitest run`): **35 test files passed, 241 tests passed, 0 failed.**
 - `pnpm eval:prompts` (live Anthropic API): **50/50 checks passed**, 0 fixes needed.

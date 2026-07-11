@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Font strategy (Phase 0): system-font stack, no bundled font file / new dependency.
+   tailwind.config.ts references var(--font-sans) first, so define it here to a safe stack. */
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Keep the native <select> popup light-toned even under OS dark mode. */
+html { color-scheme: light; }
+
+body { @apply bg-cream text-bark font-sans antialiased; }
+
+/* Oracle draw — jar shake + acorn reveal animation. */
+@keyframes dotori-shake {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-9deg); }
+  30% { transform: rotate(8deg); }
+  45% { transform: rotate(-7deg); }
+  60% { transform: rotate(6deg); }
+  75% { transform: rotate(-4deg); }
+  90% { transform: rotate(2deg); }
+}
+.animate-dotori-shake { animation: dotori-shake 0.5s ease-in-out infinite; transform-origin: 50% 60%; }
+
+@keyframes dotori-pop {
+  0% { transform: scale(0.2) translateY(20px); opacity: 0; }
+  60% { transform: scale(1.12) translateY(-6px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.animate-dotori-pop { animation: dotori-pop 0.55s cubic-bezier(0.18, 0.89, 0.32, 1.28) both; }
+
+@keyframes dotori-fade-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-dotori-fade-up { animation: dotori-fade-up 0.45s ease-out both; }
+
+/* Loading copy — rises up from below and rotates out. */
+@keyframes loading-rise {
+  0% { transform: translateY(100%); opacity: 0; }
+  15% { transform: translateY(0); opacity: 1; }
+  85% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+.animate-loading-rise { animation: loading-rise 1.8s ease-in-out both; }

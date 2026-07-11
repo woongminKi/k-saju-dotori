@@ -5,8 +5,8 @@
 | 상태 | 항목 | 용도 | 필요 시점 | 제공 방법 |
 |---|---|---|---|---|
 | ✅ | Anthropic API 키 | LLM 리딩 생성·이밸 | Phase 2 | 한국판 키 재사용 결정(2026-07-11). 로컬 .env로만 사용, 커밋 금지 |
-| 🔴 | **새 Supabase 프로젝트** | DB·인증 | Phase 3 검증 | supabase.com에서 새 프로젝트 생성 → Project URL, anon key, service_role key 3개 전달 (코드 작성은 키 없이 선진행 중 — 로그인/DB 검증만 블로킹) |
-| 🔴 | **Google Cloud OAuth 클라이언트** | Google 로그인 | Phase 3 검증 | Google Cloud Console에서 OAuth 클라이언트 ID/Secret 생성 → Supabase 대시보드 Auth > Providers > Google에 입력. 리디렉트 URI는 Supabase가 알려주는 값 사용 |
+| 🔴 | **Supabase service_role 키 재전달** | 서버 DB 접근(RLS deny-all 우회) | Phase 3 검증 | 2026-07-11 전달분은 anon 키가 중복 입력됨. 대시보드 Settings > API > service_role (Reveal) 복사 → 전달. URL·anon 키는 수령 완료(web/.env 세팅됨) |
+| ✅ | Google Cloud OAuth 클라이언트 | Google 로그인 | Phase 3 검증 | 사용자가 Supabase 대시보드에 직접 설정 완료(2026-07-11). 로그인 라운드트립 테스트에서 최종 확인 예정 |
 | ⏳ | Vercel 신규 프로젝트 | 프리뷰 배포 | Phase 4 | K-saju 저장소를 GitHub에 올린 뒤 Vercel에서 import (web/ 루트). 원격 저장소 생성 여부도 이때 결정 |
 | ⏳ | Stripe 계정 + 테스트 키 | 결제 | Phase 5 | stripe.com 가입 → 테스트 모드 Secret key + 웹훅 서명 시크릿 |
 | ⏳ | Stripe 라이브 키 | 실결제 | Phase 7 런치 | 심사/활성화 후 라이브 키 |

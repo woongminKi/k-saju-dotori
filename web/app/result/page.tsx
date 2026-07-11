@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { headers } from 'next/headers';
 import { decodeBirth } from '../../lib/birth-params';
 import type { BirthFields } from '../../lib/birth-params';
 import { computeSummary } from '../../lib/engine';
+import { enforceRateLimit, ipKey } from '../../lib/rate-limit';
+import { RateLimitNotice } from '../../components/RateLimitNotice';
 import { MenuGrid } from '../../components/MenuGrid';
 import { buttonClass } from '../../components/ui/Button';
 import Link from 'next/link';
@@ -94,6 +97,12 @@ export default async function ResultPage({
 
 /** Teaser body — one LLM call inside Suspense. On failure, show a retry inside the card only. */
 async function TeaserBody({ fields, retryHref }: { fields: BirthFields; retryHref: string }) {
+  // Free + unauthenticated, so rate-limit by hashed IP to stop this LLM call from being spammed.
+  const forwardedFor = (await headers()).get('x-forwarded-for');
+  if (!(await enforceRateLimit('teaser', ipKey(forwardedFor))).allowed) {
+    return <div className="mt-4"><RateLimitNotice /></div>;
+  }
+
   let teaser: string;
   try {
     teaser = await computeSummary(fields);

@@ -1,11 +1,13 @@
 'use server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { track } from '@vercel/analytics/server';
 import type { CompatScore } from '@engine/compatibility';
 import { getAuth, getStore } from '../../../../lib/services';
 import { supabaseServer } from '../../../../lib/supabase-ssr';
 import { readBirthFromFormData } from '../../../../lib/birth-params';
 import { createRoomForHost, submitEntry } from '../../../../lib/rooms';
+import { enforceRateLimit, userKey, ipKey, RATE_LIMIT_MESSAGE } from '../../../../lib/rate-limit';
 
 // Pull the signed-in user's Google display name for the host label. Absent -> undefined (UI fallback).
 // In a Supabase-unconfigured (stub) environment supabaseServer() throws -> absorbed as undefined.
@@ -27,6 +29,11 @@ async function currentDisplayName(): Promise<string | undefined> {
 export async function createCompatRoomAction(formData: FormData): Promise<void> {
   const user = await getAuth().getCurrentUser();
   if (!user) redirect('/');
+  // Form action can't return an HTTP 429, so on a rate-limit block bounce back to the form with a
+  // flag the page renders as an in-voice notice.
+  if (!(await enforceRateLimit('compatRoomCreate', userKey(user.id))).allowed) {
+    redirect('/menu/compat/room/new?rl=1');
+  }
   const birth = readBirthFromFormData(formData); // missing fields are pre-blocked by the page's required attrs
   const hostName = await currentDisplayName();
   const room = await createRoomForHost(getStore(), user.id, birth, undefined, hostName);
@@ -43,6 +50,11 @@ export async function submitRoomEntryAction(
   roomId: string, _prev: SubmitEntryState, formData: FormData,
 ): Promise<SubmitEntryState> {
   const nickname = String(formData.get('nickname') ?? '');
+  // Guest flow (no login) — rate-limit by hashed IP.
+  const forwardedFor = (await headers()).get('x-forwarded-for');
+  if (!(await enforceRateLimit('compatRoomJoin', ipKey(forwardedFor))).allowed) {
+    return { error: RATE_LIMIT_MESSAGE };
+  }
   let birth;
   try {
     birth = readBirthFromFormData(formData);

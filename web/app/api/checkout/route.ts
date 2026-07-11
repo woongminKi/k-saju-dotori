@@ -7,6 +7,7 @@ import {
   CHECKOUT_RETRY_GUARD_MS, findDuplicatePendingOrder, redirectCache, pruneRedirectCache,
   resolveDuplicatePendingOrder,
 } from '../../../lib/checkout-guard';
+import { enforceRateLimit, userKey, RATE_LIMIT_MESSAGE } from '../../../lib/rate-limit';
 
 // Simple mobile detection for payment providers that branch mobile/desktop redirect URLs.
 const MOBILE_UA = /Mobi|Android|iPhone|iPad|iPod/i;
@@ -32,6 +33,14 @@ export async function POST(req: Request) {
 
   const user = await getAuth().getCurrentUser();
   if (!user) return NextResponse.json({ error: 'Please log in first.' }, { status: 401 });
+
+  const rl = await enforceRateLimit('checkout', userKey(user.id));
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: RATE_LIMIT_MESSAGE },
+      { status: 429, headers: rl.retryAfterSec ? { 'Retry-After': String(rl.retryAfterSec) } : undefined },
+    );
+  }
 
   let pkg;
   try {

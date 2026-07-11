@@ -95,12 +95,24 @@ export class StripePaymentProvider implements PaymentProvider {
         orderId,
         error: error instanceof Error ? error.message : String(error),
       });
-      await this.store.markOrderFailed(orderId).catch(() => {});
+      await this.store.markOrderFailed(orderId).catch((cleanupError) => {
+        // Best-effort cleanup — the original error still wins (thrown below). Log the swallowed
+        // cleanup failure so a stuck-pending order (blocks same-package retry) is traceable.
+        console.error('[payment-stripe] markOrderFailed cleanup failed', {
+          orderId,
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      });
       throw error;
     }
 
     if (!session.url) {
-      await this.store.markOrderFailed(orderId).catch(() => {});
+      await this.store.markOrderFailed(orderId).catch((cleanupError) => {
+        console.error('[payment-stripe] markOrderFailed cleanup failed', {
+          orderId,
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      });
       throw new Error('Stripe did not return a checkout URL.');
     }
 

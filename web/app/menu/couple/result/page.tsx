@@ -6,6 +6,7 @@ import { getAuth, getStore } from '../../../../lib/services';
 import { resolveReading } from '../../../../lib/reading-flow';
 import { MenuResultView } from '../../../../components/MenuResultView';
 import { MenuTeaser } from '../../../../components/MenuTeaser';
+import { RateLimitNotice } from '../../../../components/RateLimitNotice';
 
 export const metadata: Metadata = { title: 'Couple Compatibility' };
 
@@ -56,6 +57,8 @@ export default async function CoupleResultPage({
       <h1 className="text-2xl font-extrabold text-acorn-dark">Couple compatibility</h1>
       {outcome.kind === 'insufficient' ? (
         <MenuTeaser menu="couple" />
+      ) : outcome.kind === 'rateLimited' ? (
+        <RateLimitNotice />
       ) : outcome.kind === 'failed' ? (
         <p className="text-sm text-amber-600">The reading didn&apos;t generate. You weren&apos;t charged — try again in a moment.</p>
       ) : (

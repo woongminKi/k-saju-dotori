@@ -5,6 +5,7 @@ import type { StartedMenu, StartedMenuSection } from '@engine/menus/solo';
 import type { Store } from './store';
 import { balance, spend, refund } from './wallet';
 import { birthHash, encryptPII } from './pii';
+import { enforceRateLimit, userKey } from './rate-limit';
 
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -12,6 +13,7 @@ export type ReadingOutcome =
   | { kind: 'reused'; result: MenuResult }
   | { kind: 'insufficient' }
   | { kind: 'generated'; result: MenuResult }
+  | { kind: 'rateLimited' }
   | { kind: 'failed' };
 
 export interface ResolveReadingInput {
@@ -50,6 +52,12 @@ export async function resolveReading(input: ResolveReadingInput): Promise<Readin
     return { kind: 'insufficient' };
   }
 
+  // 2b. Rate-limit the actual generation (expensive LLM call), keyed by the paying user. Cached
+  // re-views and the no-credit paywall path above are intentionally not counted.
+  if (!(await enforceRateLimit('paidReading', userKey(input.userId))).allowed) {
+    return { kind: 'rateLimited' };
+  }
+
   // 3. Generate
   const result = await input.computeUnlocked();
   if (!hasBody(result)) {
@@ -86,6 +94,7 @@ export type FinalizeOutcome =
 export type StreamingReadingOutcome =
   | { kind: 'reused'; result: MenuResult }
   | { kind: 'insufficient' }
+  | { kind: 'rateLimited' }
   | {
       kind: 'streaming';
       sections: StartedMenuSection[];
@@ -123,6 +132,12 @@ export async function resolveReadingStreaming(
     process.env['DEV_UNLOCK_BYPASS'] === '1' && process.env['NODE_ENV'] !== 'production';
   if (!bypass && (await balance(input.store, input.userId)) < 1) {
     return { kind: 'insufficient' };
+  }
+
+  // Rate-limit the actual generation, keyed by the paying user (see resolveReading). The dev bypass
+  // path still generates but is dev-only and left uncounted.
+  if (!bypass && !(await enforceRateLimit('paidReading', userKey(input.userId))).allowed) {
+    return { kind: 'rateLimited' };
   }
 
   const started = input.startUnlocked();

@@ -3,6 +3,7 @@ import { getAuth, getStore } from '../../../lib/services';
 import { claimReferral } from '../../../lib/referral';
 import { isValidReferralCode } from '../../../lib/referral-code';
 import { clearRefCookie } from '../../../lib/ref-cookie';
+import { enforceRateLimit, userKey, RATE_LIMIT_MESSAGE } from '../../../lib/rate-limit';
 
 export async function POST(req: Request) {
   let code: string;
@@ -18,6 +19,14 @@ export async function POST(req: Request) {
 
   const user = await getAuth().getCurrentUser();
   if (!user) return NextResponse.json({ error: 'Please log in first.' }, { status: 401 });
+
+  const rl = await enforceRateLimit('referral', userKey(user.id));
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: RATE_LIMIT_MESSAGE },
+      { status: 429, headers: rl.retryAfterSec ? { 'Retry-After': String(rl.retryAfterSec) } : undefined },
+    );
+  }
 
   const result = await claimReferral(getStore(), user.id, code);
   if (!result.ok) {

@@ -54,7 +54,14 @@ export async function resolveOracle(input: ResolveOracleInput): Promise<OracleOu
   let draw: OracleDraw;
   try {
     draw = await input.drawFn();
-  } catch {
+  } catch (error) {
+    // No charge has happened yet (spend runs below), so this is safe money-wise — but the LLM draw
+    // error was otherwise swallowed whole. Log it so a failing oracle generation is traceable.
+    console.error('[ORACLE_DRAW_FAILED]', {
+      userId: input.userId,
+      questionId: input.questionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { kind: 'failed' };
   }
 

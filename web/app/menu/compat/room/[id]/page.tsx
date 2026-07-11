@@ -4,6 +4,7 @@ import { getAuth, getStore } from '../../../../../lib/services';
 import { resolveEntryReading } from '../../../../../lib/rooms';
 import { RoomRankingList } from '../../../../../components/RoomRankingList';
 import { MenuResultView } from '../../../../../components/MenuResultView';
+import { RateLimitNotice } from '../../../../../components/RateLimitNotice';
 import { CopyButton } from '../../../../invite/CopyButton';
 import { ShareButton } from '../../../../../components/ShareButton';
 import { RoomActions } from '../../../../../components/RoomActions';
@@ -96,6 +97,9 @@ async function renderEntryReading(
         <Link href="/checkout" className={buttonClass('primary')}>Get credits</Link>
       </div>
     );
+  }
+  if (outcome.kind === 'rateLimited') {
+    return <RateLimitNotice />;
   }
   if (outcome.kind === 'failed') {
     return <p className="text-sm text-amber-600">The reading didn&apos;t generate. You weren&apos;t charged — try again in a moment.</p>;

@@ -2,12 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Font strategy (Phase 0): system-font stack, no bundled font file / new dependency.
-   tailwind.config.ts references var(--font-sans) first, so define it here to a safe stack. */
-:root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    'Helvetica Neue', Arial, sans-serif;
-}
+/* Font strategy: --font-sans is supplied by next/font/local (bundled Nunito) in app/layout.tsx,
+   applied to <html>. tailwind.config.ts lists var(--font-sans) first, then a system-font stack as
+   the fallback chain, so no default is needed here. */
 
 /* Keep the native <select> popup light-toned even under OS dark mode. */
 html { color-scheme: light; }

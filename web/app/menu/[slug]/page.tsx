@@ -10,6 +10,7 @@ import type { FinalizeOutcome } from '../../../lib/reading-flow';
 import type { StartedMenuSection } from '@engine/menus/solo';
 import { MenuResultView } from '../../../components/MenuResultView';
 import { MenuTeaser } from '../../../components/MenuTeaser';
+import { RateLimitNotice } from '../../../components/RateLimitNotice';
 import { AwaitedSection, SectionSkeleton, FinalizeNotice } from '../../../components/StreamingReading';
 import { ShareCardButton } from '../../../components/ShareCardButton';
 import { buttonClass } from '../../../components/ui/Button';
@@ -100,12 +101,14 @@ export default async function MenuPage({
         <h1 className="text-2xl font-extrabold text-acorn-dark">{TITLES[slug]}</h1>
         {outcome.kind === 'insufficient' ? (
           <MenuTeaser menu={slug} />
+        ) : outcome.kind === 'rateLimited' ? (
+          <RateLimitNotice />
         ) : outcome.kind === 'reused' ? (
           <MenuResultView result={outcome.result} />
         ) : (
           <StreamingSolo sections={outcome.sections} finalize={outcome.finalize} />
         )}
-        {outcome.kind !== 'insufficient' && (
+        {outcome.kind !== 'insufficient' && outcome.kind !== 'rateLimited' && (
           <>
             <ShareCardButton
               input={{ kind: 'solo', query: qp.toString() }}
@@ -141,6 +144,8 @@ export default async function MenuPage({
       <h1 className="text-2xl font-extrabold text-acorn-dark">{TITLES[slug]}</h1>
       {outcome.kind === 'insufficient' ? (
         <MenuTeaser menu={slug} />
+      ) : outcome.kind === 'rateLimited' ? (
+        <RateLimitNotice />
       ) : outcome.kind === 'failed' ? (
         <p className="text-sm text-amber-600">The reading didn&apos;t generate. You weren&apos;t charged — try again in a moment.</p>
       ) : (

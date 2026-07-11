@@ -6,6 +6,7 @@ import { resolveEntryReadingFor, compatScoreForEntry } from '../../../../../../l
 import { CompatScoreCard } from '../../../../../../components/CompatScoreCard';
 import { MenuResultView } from '../../../../../../components/MenuResultView';
 import { MenuTeaser } from '../../../../../../components/MenuTeaser';
+import { RateLimitNotice } from '../../../../../../components/RateLimitNotice';
 import { ShareCardButton } from '../../../../../../components/ShareCardButton';
 
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,8 @@ export default async function RoomEntryDetailPage({
       />
       {outcome.kind === 'insufficient' ? (
         <MenuTeaser menu="couple" />
+      ) : outcome.kind === 'rateLimited' ? (
+        <RateLimitNotice />
       ) : outcome.kind === 'failed' ? (
         <p className="text-sm text-amber-600">The reading didn&apos;t generate. You weren&apos;t charged — try again in a moment.</p>
       ) : (

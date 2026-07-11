@@ -4,6 +4,7 @@ import { getAuth, getStore } from '../../../lib/services';
 import { computeOracleDraw } from '../../../lib/engine';
 import { resolveOracle } from '../../../lib/oracle-flow';
 import { normalizeBirthFields, type BirthFields } from '../../../lib/birth-params';
+import { enforceRateLimit, userKey, RATE_LIMIT_MESSAGE } from '../../../lib/rate-limit';
 import { findQuestion } from '@engine/oracle';
 
 export interface DrawArgs {
@@ -23,6 +24,10 @@ export async function drawOracleAction(args: DrawArgs): Promise<DrawActionResult
 
   const user = await getAuth().getCurrentUser().catch(() => undefined);
   if (!user) return { kind: 'error', message: 'Please log in first.' };
+
+  if (!(await enforceRateLimit('oracle', userKey(user.id))).allowed) {
+    return { kind: 'error', message: RATE_LIMIT_MESSAGE };
+  }
 
   let normalized: string;
   try {

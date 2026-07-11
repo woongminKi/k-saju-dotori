@@ -1,7 +1,18 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import localFont from 'next/font/local';
 import { Analytics } from '@vercel/analytics/react';
+
+// Bundled brand font (Nunito, OFL) — vendored under app/fonts, not fetched from a CDN at build time.
+// Single variable-font file covers the weights components use (400 / 600 / 700). It BECOMES the
+// value of --font-sans, the same variable the system-font stack previously filled.
+const nunito = localFont({
+  src: './fonts/Nunito-Variable.ttf',
+  variable: '--font-sans',
+  display: 'swap',
+  weight: '400 700',
+});
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { BUSINESS_INFO } from '../lib/business-info';
@@ -91,7 +102,7 @@ function buildJsonLd() {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={nunito.variable}>
       <body>
         <script
           type="application/ld+json"

@@ -48,12 +48,19 @@ Status legend: `[ ]` open · `[~]` in progress / partially done · `[x]` done
 - [ ] **Production environment variables** — once the owner items above are ready, the production
   env vars (Supabase URL/keys, Anthropic key, payment keys, `CRON_SECRET`, PII encryption key, etc.)
   need to be set on the Vercel project.
-- [ ] **Rate limiting** — none currently exists in the codebase. `web/middleware.ts` only handles the
-  referral cookie and the Supabase session; there is no request throttling on the API routes or LLM
-  endpoints. This is a launch-readiness gap that should be closed before opening to real traffic.
-- [ ] **Error monitoring / observability** — nothing like Sentry, PostHog, or Datadog is configured
-  (no such dependency in `web/package.json`, no instrumentation in the app). Choosing and wiring up
-  an error-monitoring/observability solution is an open decision, not yet implemented.
+- [x] **Rate limiting** — `web/lib/rate-limit.ts` (fixed-window, Supabase-backed with an in-memory
+  dev fallback, fail-open on backend errors). Applied to free teaser generation, oracle draws, paid
+  reading generation, checkout order creation, referral apply, and compat room create/join. Webhook
+  and cron routes are exempt (protected by their own secrets). New migration
+  `supabase/migrations/0002_rate_limits.sql` — needs to be run by the owner (see
+  `NEEDS_FROM_OWNER.md`, 🔴).
+- [~] **Error monitoring / observability** — structured logs + friendly error pages are in place:
+  `web/app/error.tsx` / `global-error.tsx` (in-voice, on-brand), `web/instrumentation.ts`
+  (`onRequestError`, single grep-able JSON line per request error, funneled through one
+  `reportError()` function that's the sole swap-in point for a real sink later), and a money-path
+  audit added missing structured-log markers to a couple of previously-silent catches (no behavior
+  changes). Choosing an external alerting service (Sentry/PostHog/Datadog/etc.) is still an open
+  owner decision — not implemented, and not blocking launch on its own.
 - [ ] **Final production `next build` regression** — a full production build regression will be run
   as part of Phase 7 verification. (Do not mark this done until the Phase 7 work-log confirms it
   passed.)

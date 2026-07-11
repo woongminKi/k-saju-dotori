@@ -5,6 +5,7 @@ import { computeCompatScore, computeCoupleMenu } from '../../../../lib/engine';
 import { getAuth, getStore } from '../../../../lib/services';
 import { resolveReading } from '../../../../lib/reading-flow';
 import { MenuResultView } from '../../../../components/MenuResultView';
+import { RateLimitNotice } from '../../../../components/RateLimitNotice';
 import { CompatScoreCard } from '../../../../components/CompatScoreCard';
 import { buttonClass } from '../../../../components/ui/Button';
 
@@ -79,6 +80,9 @@ async function renderReading(
         <Link href="/checkout" className={buttonClass('primary')}>Get credits</Link>
       </div>
     );
+  }
+  if (outcome.kind === 'rateLimited') {
+    return <RateLimitNotice />;
   }
   if (outcome.kind === 'failed') {
     return <p className="text-sm text-amber-600">The reading didn&apos;t generate. You weren&apos;t charged — try again in a moment.</p>;

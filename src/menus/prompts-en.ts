@@ -1,9 +1,9 @@
+// Menu reading prompts — English re-authoring of the Korean menus/prompts.ts for love-marriage,
+// couple, and career (solo uses reading/prompts/modules-en.ts directly and doesn't touch this
+// file; newyear/reunion/intimacy specs aren't ported yet — see ENGINE_SYNC.md).
 import { SHARED_SYSTEM_BLOCK1 } from '../reading/prompts/frame-en-v1';
 import type { LlmSystemBlock } from '../naming-engine/llm';
 
-// Only the menu specs needed by the copied runners (solo uses reading/ modules directly and
-// doesn't touch this file; couple/love-marriage/career are the menus wired in Phase 0).
-// TODO(Phase 2): add newyear/reunion/intimacy specs when those runners are ported.
 export type MenuPromptId = 'love-marriage' | 'couple' | 'career';
 
 interface MenuPromptSpec {
@@ -13,24 +13,27 @@ interface MenuPromptSpec {
   twoPerson?: boolean;
 }
 
-// TODO(Phase 2): re-author focus text with full English guidance (mirrors Korean menus/prompts.ts).
 function menuSpec(menu: MenuPromptId): MenuPromptSpec {
   switch (menu) {
     case 'love-marriage':
       return {
-        title: 'Love & marriage outlook',
-        focus: 'Cover love/marriage tendencies from the spouse stars, Day Branch, and romance stars. [TODO(Phase 2)]',
+        title: 'Love & Relationship Outlook',
+        focus: `This is a love and relationship read based on this person's chart alone. Read from the Wealth Star and Structure/Warrior Star (the traditional partner-indicators), the Day Branch (the relationship palace), and any Charm Star or Romance Star present.
+Cover what kind of connection tends to click for this person, and — if the luck pillars suggest it — when a stronger pull toward relationships tends to show up, framed as a season to watch, never a hard date.`,
+        extraRules: ['- Never name or imply a specific marriage date or timeframe as a certain outcome.'],
       };
     case 'couple':
       return {
         title: 'Compatibility',
         twoPerson: true,
-        focus: 'Cover compatibility from Day Master/Day Branch relations and element complement. [TODO(Phase 2)]',
+        focus: `This is a compatibility read comparing two charts. Cover how the two Day Masters relate elementally, how the two Day Branches interact, and where the Ten Gods complement or clash between them.
+Skip a flat "good/bad" verdict — instead cover what naturally clicks between them and what's worth being mindful of, in a balanced, two-sided way.`,
       };
     case 'career':
       return {
-        title: 'Career & aptitude outlook',
-        focus: 'Cover career/aptitude tendencies from Ten Gods and element balance. [TODO(Phase 2)]',
+        title: 'Career & Aptitude Outlook',
+        focus: `This is a career and aptitude read based on this person's chart alone. Read from the Ten Gods (especially Structure/Warrior Star, Expression/Maverick Star, and Wealth Star) and the overall element balance.
+Cover what kind of work tends to feel natural, what kind of role or environment this person tends to gravitate toward, and the general shape of their financial energy — all as tendency, never a guaranteed outcome.`,
       };
   }
 }
@@ -52,10 +55,11 @@ export function buildMenuSystemBlocks(menu: MenuPromptId): LlmSystemBlock[] {
 ${spec.focus}
 
 [Output]
-Using the [tone] above, output the '${spec.title}' reading body text only.
-- No JSON/headers/title/code fences — body text only.
-- Do not leak internal scores/probabilities or English key names (e.g. breakdown).
-- Do not invent facts absent from ${basis}.${extra}`,
+Using the voice above, output the '${spec.title}' reading body text only.
+- No JSON, no headers, no title, no code fences — body text only.
+- Do not leak internal scores/probabilities or key names (e.g. "breakdown").
+- Do not invent facts absent from ${basis}.
+- English only — no hanja, no Hangul, no romanized Korean terms.${extra}`,
       cache_control: { type: 'ephemeral' },
     },
   ];

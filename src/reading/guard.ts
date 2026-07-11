@@ -9,9 +9,13 @@
 //   medical/pregnancy/legal/financial-guarantee claims ("you will definitely win the lawsuit",
 //   "guaranteed to get pregnant in...") — a Saju reading should never read as a certain diagnosis,
 //   legal outcome, or financial promise.
-// TODO(Phase 2): add school-of-thought hedging rules once the English prompt content
-//   (frame-en-v1/modules-en/menus prompts-en) is finalized — those rules depend on the exact
-//   hedge language the finished prompts instruct the model to use.
+// Phase 2: added the school-of-thought hedging rule below, now that frame-en-v1.ts's
+//   FRAME_V1_CATALOG exists and tags each interpretation pattern's reliability (high/mid/low).
+//   Sinsal, Twelve-Stage, and branch-connection reads are explicitly mid/low-confidence,
+//   school-dependent material in the prompt's own instructions (see modules-en.ts's sinsal and
+//   hapchung focus text) — this rule catches the model asserting them with unhedged, absolute
+//   certainty instead of the "tends to", "some chart-readers would say" framing the prompts ask
+//   for.
 
 interface UnsafeRule {
   re: RegExp;
@@ -47,6 +51,17 @@ const UNSAFE_RULES: UnsafeRule[] = [
   {
     re: /\b(you will definitely (win|lose) (the |your )?(lawsuit|case|trial)|guaranteed to (win|lose) (the |your )?(lawsuit|case)|you will definitely get pregnant|guaranteed to (get|become) pregnant|guaranteed pregnancy|you are definitely (pregnant|infertile)|you will (never|definitely never) (be able to )?(have|conceive) (a )?child(ren)?|guaranteed to (win|make) (millions|a fortune)|guaranteed (return|profit|riches)|you will definitely (be rich|become wealthy))\b/i,
     reason: 'definitive medical/pregnancy/legal/financial-guarantee claim',
+  },
+  // ── School-of-thought hedging — Sinsal, Twelve-Stage, and branch-connection reads are
+  //    explicitly mid/low-confidence, interpretation-dependent material (per FRAME_V1_CATALOG and
+  //    the sinsal/hapchung module focus text). Blocks the model stating them with unhedged,
+  //    absolute certainty ("this always means...", "this proves...", "there is no doubt...")
+  //    instead of the tendency-framed hedge language the prompts instruct it to use. Deliberately
+  //    narrow — ordinary confident statements about high-confidence patterns ("you're clearly a
+  //    Yang Wood type") are NOT blocked; only totalizing "always/never/proves/no doubt" framing is.
+  {
+    re: /\b(this (always|never) means|this (chart )?proves|there is no doubt|without (a )?doubt you will|without question you will|this (chart )?guarantees|this is (definitely|certainly) the (one|only) (interpretation|explanation)|no other explanation is possible)\b/i,
+    reason: 'unhedged absolute claim on interpretation-dependent material',
   },
 ];
 

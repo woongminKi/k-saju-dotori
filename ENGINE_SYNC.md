@@ -301,10 +301,132 @@ combination and diffing the produced value set against the glossary's keys.
   `COMPAT_TIER_GLOSSARY` entries are ready for that stub to consume.
 - `src/menus/prompts-en.ts` only covers `love-marriage` / `couple` / `career` — add `newyear` /
   `reunion` / `intimacy` specs if/when those runners are ported from the Korean repo.
-- `guard.ts`'s school-of-thought hedging rules are still TODO, pending Phase 2's finished prompt
-  wording.
 
 ## Verification (Phase 1, 2026-07-11)
 
 - `pnpm typecheck` (`tsc --noEmit`): passes, 0 errors.
 - `pnpm test` (`vitest run`): **28 test files passed, 194 tests passed, 0 failed.**
+
+---
+
+# Phase 2 — English prompt re-authoring (2026-07-11)
+
+Replaced all 5 Phase-0/1 prompt stubs with production content, added the deferred guard.ts
+hedging rule, re-created every test dropped in Phase 0 deviation #5, built a live eval harness,
+and ran it once against the real Anthropic API with zero failures (no fix loop needed).
+
+## Correction carried over from Phase 1 (confirmed already applied)
+
+The team's Phase 2 kickoff flagged that `hasCjkLeak` had been added directly to `sanitize.ts`
+(violating the verbatim rule) and asked for it to move to a new `sanitize-en.ts`, with the regex
+widened to cover CJK Ext-A, Hangul Jamo, and Hangul Compatibility Jamo. This had already been done
+in the prior Phase 1 reconciliation pass (crossed-in-transit messages — see that section's
+opening note); this phase only tightened the Compatibility Jamo range to the exact `ㄱ-ㆎ`
+requested (previously `㄰-㆏`, a functionally near-identical but not byte-identical range) and
+re-confirmed `sanitize.ts` is still byte-for-byte identical to the Korean original (`diff` clean).
+
+## Files re-authored (all replace Phase-0/1 stubs; version strings bumped, no longer `-stub`)
+
+| File | Version | Notes |
+|---|---|---|
+| `src/reading/prompts/frame-en-v1.ts` | `2026-07-11.1-frame-en-v1` | `SHARED_SYSTEM_BLOCK1` now the single cache-shared block for solo modules AND all 3 menu prompts (verified by test) |
+| `src/reading/prompts/modules-en.ts` | (uses `READING_PROMPT_VERSION`) | All 8 `MODULE_SPECS` (6 active + `twelveStates`/`hapchung` kept for type parity, matching the Korean original's own scope) |
+| `src/reading/prompts/teaser-en.ts` | `2026-07-11.1-teaser-en-v1` | 2-3 sentence curiosity-gap hook, ~40-70 words |
+| `src/menus/prompts-en.ts` | (uses `READING_PROMPT_VERSION`) | `love-marriage` / `couple` / `career` specs (solo doesn't use this file — see Phase 0 note) |
+| `src/oracle/prompt-en.ts` | `2026-07-11.1-oracle-en-v1` | Same `{answer, reason}` JSON contract as Korean; "acorn" framing baked into the `answer` field |
+| `src/oracle/questions-en.ts` | — | Full 120-question bank (6 categories × 20), re-themed (not translated) — see below |
+| `src/reading/guard.ts` | — | Added the deferred school-of-thought hedging rule (5th category) |
+
+## Approved voice — how it was operationalized
+
+Owner-approved samples (tagline, reading excerpt, oracle answer) were folded directly into
+`frame-en-v1.ts`'s `TONE_BLOCK` as the literal worked example, not just described abstractly —
+the model is shown the exact register expected. Key mechanical rules: second person; contractions
+fine, no heavy slang; entertainment framing ("your chart suggests...") never deterministic
+predictions; confidence-tagged hedging (high states plainly, mid/low hedge); every metaphysics
+term sourced only from `src/i18n/glossary-en.ts`, explained on first use; the "weakness + concrete
+everyday remedy" move made a hard requirement in the shared system block's `[Safety]` section
+(not just the Five Elements module) so it surfaces wherever it's relevant.
+
+## Oracle question bank — re-themed, not translated
+
+The Korean original's 6 categories (연애·관계/직장·커리어/금전·재물/건강/학업·시험/일상선택) were
+replaced with 6 new categories matching the team's named themes for the target audience: **Crushes
+& Texting** (💌), **Friendship Drama** (👯, new — no direct Korean equivalent, added because
+friend-group dynamics are a strong fit for this audience), **Career Moves** (💼), **Moving & New
+Places** (🧳), **Money Moves** (🪙), **Should-I Decisions** (🌀, catch-all). 20 questions each,
+120 total — same scale as the Korean bank. Health and study/exam categories from the Korean
+original were folded into "Should-I Decisions" and "Career Moves" respectively rather than kept
+as separate categories, since they weren't among the 5 themes the team named and a 6th
+"miscellaneous" category covers the same ground more flexibly for this audience.
+
+## Guard — school-of-thought hedging rule (5th category)
+
+Targets unhedged, absolute-certainty language specifically on interpretation-dependent material
+(Sinsal, Twelve-Stage, branch-connection reads — all explicitly tagged mid/low-confidence in
+`FRAME_V1_CATALOG` and the `sinsal`/`hapchung` module focus text): `"this always means..."`,
+`"this proves..."`, `"there is no doubt..."`, `"without question you will..."`, `"this
+guarantees..."`, `"this is definitely the only interpretation..."`. Deliberately narrow — ordinary
+confident statements about high-confidence patterns (`"you're clearly a Yang Wood type"`) are not
+blocked, only totalizing language. 9 blocking + 5 additional passing test cases.
+
+## Re-created tests (Phase 0 deviation #5 — English equivalents)
+
+All in the same spirit as the dropped Korean-content tests, same test intent, new English
+fixtures/markers:
+- `src/reading/__tests__/generate.test.ts` (7 tests, new) — asserts `system[0].text` contains
+  `'playful best friend'` and `'English only'` instead of Korean markers; module identification
+  via the English title `'Your Day Master'` instead of `'일간 본질'`.
+- `src/reading/__tests__/summary.test.ts` (5 tests, new) — asserts on `buildTeaserPrompt` English
+  markers (`'curiosity gap'`, `'40-70 words'`) instead of the Korean teaser's markers.
+- `src/oracle/__tests__/oracle.test.ts` (7 tests, new; `__tests__/` directory itself re-created) —
+  `findQuestion('career-1')` now asserts on `'raise'` instead of `'이직'`.
+- `src/menus/__tests__/couple.test.ts` (2 tests, new) — asserts the pair-prompt contains `'Person
+  1'`/`'Person 2'` instead of `'사람 1'`/`'사람 2'`.
+- `src/menus/__tests__/_generate-section.test.ts` and `love-marriage.test.ts` — restored the 1
+  removed sub-test in each, using the English guard trigger `'You are going to die next year.'`
+  in place of the Korean `'곧 죽는다'`.
+- `src/reading/__tests__/prompts-shared-block.test.ts` (5 tests, new) — English re-creation of the
+  Korean `prompts-shared-block.test.ts`, extended per the Phase 2 spec: version-string presence/
+  distinctness checks, and (beyond the Korean original's scope) confirms `buildMenuSystemBlocks`'s
+  block1 is byte-identical to `buildModuleSystemBlocks`'s — i.e. solo and menu prompts actually
+  share the Anthropic prompt cache, not just claim to.
+
+## Live eval harness (`tools/eval-prompts.ts`)
+
+4 fixed, diverse charts built from real engine output (not hand-crafted fixtures) — one domestic
+Seoul 1990 birth, three international births exercising `internationalBirthToSajuChart` (New York
+1995, London 2000, Los Angeles 1988) — run through solo (all 6 modules), the free teaser, 3 oracle
+draws (one per a different question category), love-marriage, and career; plus couple across 2
+pairings. Every body is checked for `hasCjkLeak`, `hasRawLeak`, `checkContentSafety`, and (for
+modules/teaser) a word-count band matching `LENGTH_BLOCK`'s target. Full transcripts written to
+`eval-output/` (gitignored), a summary table printed to console, `_summary.json` written for
+programmatic inspection.
+
+**Result: 50/50 passed on the first run** — 0 CJK leaks, 0 raw-data leaks, 0 guard violations, 0
+word-count-band misses. No prompt fixes were needed.
+
+API key: reused the Korean app's `ANTHROPIC_API_KEY` (owner-approved 2026-07-11) by copying the
+one line from `saju/.env` into a new `K-saju/.env`; confirmed gitignored (`git check-ignore`
+before AND after writing) before writing the value.
+
+## Deviations / judgment calls this phase
+
+1. Oracle categories re-themed rather than 1:1 translated (see section above) — a genuine content
+   decision, not just a wording choice, since "Friendship Drama" has no Korean-original
+   counterpart and health/study were dropped as separate categories.
+2. `twelveStates`/`hapchung` module specs were written in full (not left as Phase-0 TODOs) even
+   though `generate.ts`'s `PARALLEL_MODULES` doesn't currently invoke them (matching the Korean
+   original's own scope, which also keeps the spec for "possible revival" per its code comment) —
+   consistent, no reason to leave half the `MODULE_SPECS` record unfinished.
+3. Eval word-count bands (`BANDS` in `eval-prompts.ts`) were set with a generous margin around the
+   prompt's own target (e.g. module target 180-280 → pass band 130-320) rather than the exact
+   target range, since this is a live-eval pass/fail gate meant to catch gross drift, not a strict
+   prompt-compliance audit — the actual results (252-297 words per module) landed comfortably
+   inside the tighter target anyway.
+
+## Verification (Phase 2, 2026-07-11)
+
+- `pnpm typecheck` (`tsc --noEmit`): passes, 0 errors.
+- `pnpm test` (`vitest run`): **33 test files passed, 236 tests passed, 0 failed.**
+- `pnpm eval:prompts` (live Anthropic API): **50/50 checks passed**, 0 fixes needed.

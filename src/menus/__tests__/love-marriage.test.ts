@@ -15,4 +15,16 @@ describe('menus/love-marriage', () => {
     expect(r.sections[0]!.body).toBe('Your luck pillars point to a bond growing stronger over time.');
     expect(r.partial).toBe(false);
   });
+
+  it('a guard violation reports partial=true and locks by default', async () => {
+    // English re-creation of the sub-test removed in Phase 0 (deviation #5) — the Korean trigger
+    // phrase '곧 죽는다' isn't recognized by the (intentionally English) guard.ts ruleset.
+    const llm = mockLlm(() => 'You are going to die next year.'); // safety violation -> ok:false
+    const r = await runLoveMarriage(
+      { menu: 'love-marriage', subject: { chart: fakeChart(), chartSummary: '일주 戊午' } },
+      { llm, moduleRetries: 0 },
+    );
+    expect(r.partial).toBe(true);
+    expect(r.locked).toBe(true);
+  });
 });

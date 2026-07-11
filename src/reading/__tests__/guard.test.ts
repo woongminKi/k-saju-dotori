@@ -63,6 +63,34 @@ describe('checkContentSafety — definitive medical/pregnancy/legal/financial-gu
   });
 });
 
+describe('checkContentSafety — school-of-thought hedging on interpretation-dependent material', () => {
+  it.each([
+    'This always means you will be unlucky in love.',
+    'This never means anything good for your career.',
+    'This chart proves you are meant to be alone.',
+    'There is no doubt this Sinsal controls your whole life.',
+    'Without a doubt you will fail at this.',
+    'Without question you will regret this decision.',
+    'This chart guarantees you a miserable year.',
+    'This is definitely the only interpretation of this pattern.',
+    'No other explanation is possible for this placement.',
+  ])('blocks: "%s"', (text) => {
+    const r = checkContentSafety(text);
+    expect(r.safe).toBe(false);
+    expect(r.reason).toBe('unhedged absolute claim on interpretation-dependent material');
+  });
+
+  it.each([
+    'This Sinsal tends to show up as a pull toward travel.',
+    'Some chart-readers would call this a sign of restlessness.',
+    "This often shows up as a preference for equal-footing friendships.",
+    "You're clearly a Yang Wood type at your core.",
+    'This pattern can go either way, but one common read is a busy, social season.',
+  ])('allows: "%s"', (text) => {
+    expect(checkContentSafety(text)).toEqual({ safe: true });
+  });
+});
+
 describe('checkContentSafety — hedged, non-fatalistic phrasing passes', () => {
   it.each([
     'You may want to take extra care of your health this year.',

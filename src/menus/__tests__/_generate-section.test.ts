@@ -9,6 +9,15 @@ describe('menus/_generate-section', () => {
     expect(sec).toEqual({ id: 'lm', title: '연애·결혼운', body: 'Today carries a strong, steady energy.', ok: true });
   });
 
+  it('a death/lifespan-prediction guard violation retries and reports ok:false', async () => {
+    // English re-creation of the sub-test removed in Phase 0 (deviation #5) — the Korean trigger
+    // phrase '곧 죽는다' isn't recognized by the (intentionally English) guard.ts ruleset.
+    const llm = mockLlm(() => 'You are going to die next year.');
+    const sec = await generateSection('lm', '연애·결혼운', '프롬프트', { llm, moduleRetries: 1 });
+    expect(sec.ok).toBe(false);
+    expect(sec.body).toBe('');
+  });
+
   it('빈 응답이면 ok:false', async () => {
     const llm = mockLlm(() => '   ');
     const sec = await generateSection('lm', '제목', '프롬프트', { llm, moduleRetries: 0 });

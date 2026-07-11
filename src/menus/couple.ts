@@ -15,7 +15,7 @@ export async function runCouple(
   const summaryB = input.partner.chartSummary ?? buildChartSummaryEn(input.partner.chart);
   const system = buildMenuSystemBlocks('couple');
   const user = buildMenuPairUserPrompt(summaryA, summaryB);
-  const section = await generateSection('couple', '궁합', user, deps, system);
+  const section = await generateSection('couple', 'Compatibility', user, deps, system);
   const sections = [section];
   const result: MenuResult = {
     menu: 'couple',

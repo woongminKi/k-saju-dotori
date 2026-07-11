@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getAuth, getStore } from '../../lib/services';
 import { RoomManageItem } from '../../components/RoomManageItem';
@@ -20,6 +21,8 @@ function roomBadge(expiresAt: number, now: number): { expired: boolean; label: s
   const deleteInDays = Math.max(1, Math.ceil((expiresAt + ROOM_SWEEP_GRACE_MS - now) / DAY_MS));
   return { expired: true, label: `Expired · deletes in ${deleteInDays} days` };
 }
+
+export const metadata: Metadata = { title: 'Your Reading History' };
 
 export default async function LibraryPage() {
   const user = await getAuth().getCurrentUser();

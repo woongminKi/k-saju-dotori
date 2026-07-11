@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getAuth, getStore } from '../../../../../lib/services';
 import { resolveEntryReading } from '../../../../../lib/rooms';
@@ -9,6 +10,8 @@ import { RoomActions } from '../../../../../components/RoomActions';
 import { buttonClass } from '../../../../../components/ui/Button';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'Compatibility Room' };
 
 export default async function RoomDashboardPage({
   params, searchParams,

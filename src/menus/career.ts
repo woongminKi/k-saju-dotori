@@ -14,7 +14,7 @@ export async function runCareer(
   const summary = input.subject.chartSummary ?? buildChartSummaryEn(input.subject.chart);
   const system = buildMenuSystemBlocks('career');
   const user = buildMenuUserPrompt(summary);
-  const section = await generateSection('career', '직업·적성운', user, deps, system);
+  const section = await generateSection('career', 'Career & Calling', user, deps, system);
   const sections = [section];
   const result: MenuResult = {
     menu: 'career',

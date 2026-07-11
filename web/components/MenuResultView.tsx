@@ -5,6 +5,14 @@ import type { MenuResult, MenuSection } from '@engine/menus/types';
 import { Card } from './ui/Card';
 import { buttonClass } from './ui/Button';
 
+function EntertainmentNote() {
+  return (
+    <p className="pt-2 text-center text-xs text-bark/60">
+      For entertainment and self-reflection only — not professional advice.
+    </p>
+  );
+}
+
 function SectionCard({ s }: { s: MenuSection }) {
   return (
     <Card className="p-6">
@@ -29,6 +37,7 @@ export function MenuResultView({ result }: { result: MenuResult }) {
         {result.sections.map((s) => (
           <SectionCard key={s.id} s={s} />
         ))}
+        <EntertainmentNote />
       </div>
     );
   }
@@ -68,6 +77,7 @@ export function MenuResultView({ result }: { result: MenuResult }) {
           ))}
         </div>
       )}
+      <EntertainmentNote />
     </div>
   );
 }

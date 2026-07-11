@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getAuth } from '../../../../../lib/services';
 import { SingleBirthForm } from '../../../../../components/SingleBirthForm';
@@ -5,6 +6,8 @@ import { createCompatRoomAction } from '../actions';
 import { buttonClass } from '../../../../../components/ui/Button';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'New Compatibility Room' };
 
 export default async function NewRoomPage() {
   const user = await getAuth().getCurrentUser();

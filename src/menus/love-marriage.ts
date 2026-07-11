@@ -14,7 +14,7 @@ export async function runLoveMarriage(
   const summary = input.subject.chartSummary ?? buildChartSummaryEn(input.subject.chart);
   const system = buildMenuSystemBlocks('love-marriage');
   const user = buildMenuUserPrompt(summary);
-  const section = await generateSection('love-marriage', '연애·결혼운', user, deps, system);
+  const section = await generateSection('love-marriage', 'Love & Marriage', user, deps, system);
   const sections = [section];
   const result: MenuResult = {
     menu: 'love-marriage',

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { decodeCouple, normalizeBirthFields } from '../../../../lib/birth-params';
 import { computeCompatScore, computeCoupleMenu } from '../../../../lib/engine';
@@ -6,6 +7,8 @@ import { resolveReading } from '../../../../lib/reading-flow';
 import { MenuResultView } from '../../../../components/MenuResultView';
 import { CompatScoreCard } from '../../../../components/CompatScoreCard';
 import { buttonClass } from '../../../../components/ui/Button';
+
+export const metadata: Metadata = { title: 'Compatibility Score' };
 
 export default async function CompatResultPage({
   searchParams,

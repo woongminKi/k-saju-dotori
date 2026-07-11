@@ -1,7 +1,10 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Card } from '../../../components/ui/Card';
 import { buttonClass } from '../../../components/ui/Button';
 import { TrackOnMount } from '../../../components/TrackOnMount';
+
+export const metadata: Metadata = { title: 'Payment Successful' };
 
 export default async function CheckoutSuccessPage({
   searchParams,

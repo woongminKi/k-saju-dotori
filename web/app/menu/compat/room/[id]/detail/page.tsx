@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getAuth, getStore } from '../../../../../../lib/services';
@@ -10,6 +11,8 @@ import { ShareCardButton } from '../../../../../../components/ShareCardButton';
 export const dynamic = 'force-dynamic';
 
 // Guest paid detailed reading — login + charge on their own account. Score/tier/one-liner were free at join.
+export const metadata: Metadata = { title: 'Detailed Compatibility Reading' };
+
 export default async function RoomEntryDetailPage({
   params, searchParams,
 }: {

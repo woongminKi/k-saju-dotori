@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { decodeBirth } from '../../lib/birth-params';
 import type { BirthFields } from '../../lib/birth-params';
@@ -7,6 +8,8 @@ import { buttonClass } from '../../components/ui/Button';
 import Link from 'next/link';
 import { ShareCardButton } from '../../components/ShareCardButton';
 import { TrackLink } from '../../components/TrackLink';
+
+export const metadata: Metadata = { title: 'Your Fortune Preview' };
 
 export default async function ResultPage({
   searchParams,
@@ -81,6 +84,10 @@ export default async function ResultPage({
         <h2 className="mb-3 text-lg font-semibold text-acorn-dark">Go deeper</h2>
         <MenuGrid query={params.toString()} />
       </div>
+
+      <p className="text-center text-xs text-bark/60">
+        For entertainment and self-reflection only — not professional advice.
+      </p>
     </section>
   );
 }

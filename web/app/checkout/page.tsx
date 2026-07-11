@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getAuth, getStore } from '../../lib/services';
 import { pointsBalance } from '../../lib/points';
@@ -5,6 +6,8 @@ import { buttonClass } from '../../components/ui/Button';
 import { CheckoutForm } from './CheckoutForm';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'Get Credits' };
 
 export default async function CheckoutPage({
   searchParams,

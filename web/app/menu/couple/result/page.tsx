@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { decodeCouple, normalizeBirthFields } from '../../../../lib/birth-params';
 import { computeCoupleMenu } from '../../../../lib/engine';
@@ -5,6 +6,8 @@ import { getAuth, getStore } from '../../../../lib/services';
 import { resolveReading } from '../../../../lib/reading-flow';
 import { MenuResultView } from '../../../../components/MenuResultView';
 import { MenuTeaser } from '../../../../components/MenuTeaser';
+
+export const metadata: Metadata = { title: 'Couple Compatibility' };
 
 export default async function CoupleResultPage({
   searchParams,

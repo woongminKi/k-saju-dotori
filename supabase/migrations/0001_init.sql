@@ -137,14 +137,26 @@ alter table compat_rooms enable row level security;
 alter table compat_room_entries enable row level security;
 alter table share_cards enable row level security;
 
+-- Postgres has no CREATE POLICY IF NOT EXISTS, so drop-then-create each one to keep this file
+-- safe to paste more than once into the dashboard SQL editor (unlike the CREATE TABLE/INDEX
+-- statements above, which are already idempotent via IF NOT EXISTS).
+drop policy if exists users_deny_all on users;
 create policy users_deny_all on users for all using (false) with check (false);
+drop policy if exists ledger_deny_all on ledger;
 create policy ledger_deny_all on ledger for all using (false) with check (false);
+drop policy if exists orders_deny_all on orders;
 create policy orders_deny_all on orders for all using (false) with check (false);
+drop policy if exists readings_deny_all on readings;
 create policy readings_deny_all on readings for all using (false) with check (false);
+drop policy if exists menu_counts_deny_all on menu_counts;
 create policy menu_counts_deny_all on menu_counts for all using (false) with check (false);
+drop policy if exists points_ledger_deny_all on points_ledger;
 create policy points_ledger_deny_all on points_ledger for all using (false) with check (false);
+drop policy if exists compat_rooms_deny_all on compat_rooms;
 create policy compat_rooms_deny_all on compat_rooms for all using (false) with check (false);
+drop policy if exists compat_room_entries_deny_all on compat_room_entries;
 create policy compat_room_entries_deny_all on compat_room_entries for all using (false) with check (false);
+drop policy if exists share_cards_deny_all on share_cards;
 create policy share_cards_deny_all on share_cards for all using (false) with check (false);
 
 -- Test-only: empty every table (called from contract-test beforeEach).

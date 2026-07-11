@@ -83,7 +83,41 @@ Supabase `service_role` 키가 현재 잘못 입력된 상태(NEEDS_FROM_OWNER.m
 - `pnpm build` (web/): 정상.
 - Vercel 프리뷰: 빌드 성공, 스텁 인증·결제·솔로 리딩·오라클 무료 뽑기 전부 실동작 확인.
 
-## 남은 항목
+## 추가 — 실 Supabase 스토어·인증 검증 (오너 자격증명 완비 후)
 
-- Supabase `service_role` 키 정정 필요(NEEDS_FROM_OWNER.md 🔴, 실제 영속 스토어 검증의 전제조건).
-- 향후 배포는 git push 트리거 방식만 사용할 것(CLI 직접 배포 시 로컬 .env 노출 위험 재확인됨).
+오너가 실 Supabase 프로젝트 생성 + Google OAuth 설정을 완료하고 올바른 `service_role` 키를 전달,
+마이그레이션(`0001_init.sql`)도 대시보드에 적용 완료된 상태에서 아래 항목을 검증:
+
+1. **store-supabase 통합 테스트 신규 작성 + 실행**: 한국판 `store-contract.ts`(계약 테스트 본체)
+   + `store-supabase.test.ts`(`SUPABASE_TEST_URL`/`SUPABASE_SERVICE_ROLE_KEY` 존재 시에만 실행,
+   부재 시 자동 skip) 패턴을 이식 — `amountKRW→amountCents`, 룸 닉네임 한글 픽스처(영희/민수/지훈)
+   →영문(Amy/Ben/Cara) 치환 등 반영. 실 프로젝트(런칭 전, 빈 상태 확인 후) 대상 **37개 테스트
+   전부 통과**. 각 테스트는 `beforeEach`에서 `truncate_all_test_tables` RPC로 초기화되며, 실행 후
+   남은 마지막 테스트 분(1건, share_cards) 포함 전량 정리 완료(9개 테이블 재확인 결과 전부 빈 상태).
+2. **영속성 스모크 테스트**: `services.ts`의 `getStore()`가 실 환경에서 `SupabaseStore`를 선택하는지
+   확인 후, 별도 3회의 **완전히 분리된 프로세스 실행**(같은 프로세스 내 재사용이 아님)으로
+   오라클 무료 뽑기 플로우 실행 — 1차 프로세스가 저장한 리딩을 2차 프로세스가 캐시 히트로
+   읽어오고, 무료 쿼터 카운트(2회 제한)도 프로세스 경계를 넘어 정확히 유지되어 3차 프로세스에서
+   정상적으로 유료 전환(`needCredit`) 처리됨을 확인 — 인메모리 스토어라면 불가능한 결과. 테스트
+   유저 데이터는 타겟 삭제로 정리(truncate 미사용, 다른 동시 작업과 무관하게 안전).
+3. **Google OAuth 배선 검증**: `/login` 렌더링(200, "Sign in with Google" 버튼) 확인. 로그인
+   서버 액션이 생성하는 Supabase authorize URL을 실제로 따라가 **`accounts.google.com`으로의 302
+   리다이렉트**를 확인 — 실 Google OAuth 클라이언트 ID, 올바른 `redirect_uri`(Supabase 콜백),
+   `scope=email profile`, CSRF `state` 파라미터까지 전부 정상. 콜백 라우트에 잘못된 `code`를
+   전달 시 `/login?error=auth`로 307 리다이렉트되고 해당 에러 메시지("Sign-in failed. Please try
+   again.")가 정상 렌더링됨을 확인. **실제 동의 화면 클릭은 사람 계정이 필요해 오너가 직접
+   진행**: (1) 배포된 `/login`에서 "Sign in with Google" 클릭 → 본인 Google 계정으로 동의 →
+   앱으로 정상 복귀(로그인 상태) 확인, (2) Supabase 대시보드 `users` 테이블에 해당 계정의
+   `provider_id`가 채워진 행이 생성됐는지 확인.
+4. **Vercel Preview 환경변수 보완**: 기존 4종(NEXT_PUBLIC_SITE_URL/PII_ENC_KEY/PII_HASH_KEY/
+   ANTHROPIC_API_KEY)에 이어 `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`/
+   `SUPABASE_SERVICE_ROLE_KEY`(sensitive)/`CRON_SECRET`/`RETENTION_SWEEP_SECRET`/
+   `PAYMENTS_RECONCILE_SECRET`/`PAYMENTS_ADMIN_SECRET`/`DEV_UNLOCK_BYPASS` 8종을 Preview
+   스코프(전체 브랜치)로 추가 — 배포는 실행하지 않음(git push 트리거 방식 유지).
+   **CLI 버그 발견**: `vercel env add NAME preview --value X --yes`(공식 문서·CLI가 스스로
+   제안하는 문법 그대로)가 이 환경에서 `--force` 조합·stdin 파이프 등 어떤 조합으로도
+   `git_branch_required` 에러 루프에서 벗어나지 못함 — CLI를 우회해 Vercel REST API
+   (`POST /v10/projects/{id}/env`, `target:["preview"]`, `gitBranch` 미지정으로 전체 브랜치 적용)로
+   직접 8건 모두 생성(HTTP 201) 후 `vercel env ls`로 재확인.
+
+**남은 항목**: Google 동의 화면 실클릭(오너, 위 4번 문단 절차), Stripe(Phase 5).

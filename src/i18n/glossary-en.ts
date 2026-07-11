@@ -52,17 +52,20 @@ export const BRANCH_GLOSSARY: Record<string, GlossaryEntry> = {
 };
 
 // ── Ten Gods (십신) — relationship of another stem to the Day Master ────────────────────────
+// Retoned to a "___ Star" naming convention (matching Sinsal below) instead of literal/academic
+// BaZi terms (e.g. not "Rob Wealth", "Seven Killings") — the target reader knows her zodiac sign
+// but has never heard of BaZi, so these read like a friendly astrology-app placement, not jargon.
 export const TEN_GOD_GLOSSARY: Record<string, GlossaryEntry> = {
-  '비견': { en: 'Companion', gloss: 'peer-like relationships, equal footing' },
-  '겁재': { en: 'Rob Wealth', gloss: 'competitive drive, shared resources, rivalry' },
-  '식신': { en: 'Eating God', gloss: 'self-expression, ease, enjoying the fruits of effort' },
-  '상관': { en: 'Hurting Officer', gloss: 'sharp talent, bluntness, pushing against rules' },
-  '편재': { en: 'Indirect Wealth', gloss: 'opportunistic gain, flexible money, risk-taking' },
-  '정재': { en: 'Direct Wealth', gloss: 'steady income, careful management, earned reward' },
-  '편관': { en: 'Seven Killings', gloss: 'pressure, discipline from outside, high stakes' },
-  '정관': { en: 'Direct Officer', gloss: 'structure, duty, playing by the rules' },
-  '편인': { en: 'Indirect Resource', gloss: 'unconventional insight, private study, intuition' },
-  '정인': { en: 'Direct Resource', gloss: 'formal support, mentorship, credentialed learning' },
+  '비견': { en: 'Peer Star', gloss: 'peer-like relationships, equal footing' },
+  '겁재': { en: 'Rival Star', gloss: 'competitive drive, shared resources, rivalry' },
+  '식신': { en: 'Expression Star', gloss: 'self-expression, ease, enjoying the fruits of effort' },
+  '상관': { en: 'Maverick Star', gloss: 'sharp talent, bluntness, pushing against rules' },
+  '편재': { en: 'Opportunity Star', gloss: 'opportunistic gain, flexible money, risk-taking' },
+  '정재': { en: 'Wealth Star', gloss: 'steady income, careful management, earned reward' },
+  '편관': { en: 'Warrior Star', gloss: 'pressure, discipline from outside, high stakes' },
+  '정관': { en: 'Structure Star', gloss: 'structure, duty, playing by the rules' },
+  '편인': { en: 'Intuition Star', gloss: 'unconventional insight, private study, intuition' },
+  '정인': { en: 'Mentor Star', gloss: 'formal support, mentorship, credentialed learning' },
 };
 
 // ── Twelve Life Stages (12운성) — day-master strength across the branches ───────────────────
@@ -81,13 +84,13 @@ export const TWELVE_STATE_GLOSSARY: Record<string, GlossaryEntry> = {
   '양': { en: 'Nurture', gloss: 'quiet growth, being cared for before emerging' },
 };
 
-// ── Sinsal (신살) — notable special stars ────────────────────────────────────────────────────
+// ── Sinsal (신살) — notable special stars, "___ Star" naming convention ─────────────────────
 export const SINSAL_GLOSSARY: Record<string, GlossaryEntry> = {
-  '도화': { en: 'Peach Blossom', gloss: 'charm and magnetism that draws people in' },
-  '역마': { en: 'Traveling Horse', gloss: 'restlessness, relocation, a life in motion' },
-  '화개': { en: 'Canopy', gloss: 'artistic depth, solitude, spiritual inclination' },
-  '홍염': { en: 'Red Glow', gloss: 'romantic magnetism, a flair for passion' },
-  '천을귀인': { en: 'Heavenly Noble', gloss: 'a benefactor star — help arrives when needed' },
+  '도화': { en: 'Charm Star', gloss: 'charm and magnetism that draws people in' },
+  '역마': { en: "Traveler's Star", gloss: 'restlessness, relocation, a life in motion' },
+  '화개': { en: "Artist's Star", gloss: 'artistic depth, solitude, spiritual inclination' },
+  '홍염': { en: 'Romance Star', gloss: 'romantic magnetism, a flair for passion' },
+  '천을귀인': { en: 'Guardian Star', gloss: 'a benefactor energy — help arrives when needed' },
 };
 
 // ── Polarity (음양) ───────────────────────────────────────────────────────────────────────────
@@ -96,8 +99,16 @@ export const POLARITY_GLOSSARY: Record<string, GlossaryEntry> = {
   '음': { en: 'Yin', gloss: 'receptive, inward, subtle' },
 };
 
+// ── Compatibility grade labels (src/compatibility/types.ts CompatTier) ──────────────────────
+export const COMPAT_TIER_GLOSSARY: Record<string, GlossaryEntry> = {
+  '천생연분': { en: 'Soulmate Match', gloss: 'a rare, powerfully magnetic connection' },
+  '좋음': { en: 'Great Match', gloss: 'an easy, naturally compatible connection' },
+  '무난': { en: 'Good Match', gloss: 'a workable connection with a little give and take' },
+  '노력 필요': { en: 'Growth Match', gloss: 'a connection that rewards real effort from both sides' },
+};
+
 export type GlossaryCategory =
-  | 'element' | 'stem' | 'branch' | 'tenGod' | 'twelveState' | 'sinsal' | 'polarity';
+  | 'element' | 'stem' | 'branch' | 'tenGod' | 'twelveState' | 'sinsal' | 'polarity' | 'compatTier';
 
 const CATEGORY_GLOSSARY: Record<GlossaryCategory, Record<string, GlossaryEntry>> = {
   element: ELEMENT_GLOSSARY,
@@ -107,6 +118,7 @@ const CATEGORY_GLOSSARY: Record<GlossaryCategory, Record<string, GlossaryEntry>>
   twelveState: TWELVE_STATE_GLOSSARY,
   sinsal: SINSAL_GLOSSARY,
   polarity: POLARITY_GLOSSARY,
+  compatTier: COMPAT_TIER_GLOSSARY,
 };
 
 /**

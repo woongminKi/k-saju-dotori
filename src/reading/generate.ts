@@ -2,7 +2,8 @@ import type { ModuleReading, ReadingModuleId, FullReading, ReadingInput, Reading
 import { buildChartSummaryEn } from './chart-summary-en';
 import { buildModuleSystemBlocks, buildModuleUserPrompt, MODULE_SPECS } from './prompts/modules-en';
 import { READING_PROMPT_VERSION } from './prompts/frame-en-v1';
-import { sanitizeBody, hasRawLeak, hasCjkLeak } from './sanitize';
+import { sanitizeBody, hasRawLeak } from './sanitize';
+import { hasCjkLeak } from './sanitize-en';
 import { checkContentSafety } from './guard';
 
 // twelveStates·hapchung 은 사용자 피드백으로 목록에서 제외(2026-07-10) — MODULE_SPECS/타입은

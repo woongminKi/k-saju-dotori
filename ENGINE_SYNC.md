@@ -42,7 +42,7 @@ manifest instructions.
 | `src/reading/prompts/frame-v1.ts` | `src/reading/prompts/frame-en-v1.ts` | stub-for-phase2 |
 | `src/reading/prompts/modules.ts` | `src/reading/prompts/modules-en.ts` | stub-for-phase2 |
 | `src/reading/prompts/teaser.ts` | `src/reading/prompts/teaser-en.ts` | stub-for-phase2 |
-| `src/reading/guard.ts` | `src/reading/guard.ts` | rewritten (English rules, same `{safe, reason?}` contract) |
+| `src/reading/guard.ts` | `src/reading/guard.ts` | **authored in Phase 1** (English rules, same `{safe, reason?}` contract — started as a Phase 0 stub, fully authored/expanded in Phase 1, see Phase 1 section below) |
 | `src/reading/index.ts` | — | dropped (barrel; re-exports dropped Korean prompt files, no consumer needs it in Phase 0) |
 | — | `src/i18n/glossary-en.ts` | new skeleton |
 | `src/menus/_generate-section.ts` | same | relocated-import-fix |
@@ -152,20 +152,159 @@ manifest instructions.
    `guard.ts` (Phase 1) or `menus/prompts-en.ts` (Phase 2) should consider re-adding
    English-language equivalents of the removed sub-tests.
 
-## Verification (2026-07-11)
+## Verification (Phase 0, 2026-07-11)
 
 - `pnpm install`: clean, no errors.
 - `pnpm typecheck` (`tsc --noEmit`): passes, 0 errors.
 - `pnpm test` (`vitest run`): **23 test files passed, 120 tests passed, 0 failed.**
 
+---
+
+# Phase 1 — Engine internationalization (2026-07-11)
+
+New/changed files this phase, all additive — no verbatim engine file (`saju-engine/**`,
+`llm/**`, `naming-engine/llm.ts`/`types.ts`/`_element-tables.ts`, `manseryeok-adapter.ts`,
+`reading/sanitize.ts`, `reading/character.ts`, `reading/chart-summary.ts`) was edited.
+
+| File | Status |
+|---|---|
+| `src/chart-input/international-birth.ts` | new — `internationalBirthToSajuChart()`, see risk probe below |
+| `src/chart-input/__tests__/international-birth.test.ts` | new — 22 tests |
+| `src/i18n/glossary-en.ts` | completed (was a 6-entry Phase 0 skeleton) — see glossary section below |
+| `src/i18n/__tests__/glossary-en.test.ts` | new — 12 tests, completeness tripwire |
+| `src/reading/chart-summary-en.ts` | new — English sibling of `chart-summary.ts`, never edits it |
+| `src/reading/__tests__/chart-summary-en.test.ts` | new — 3 tests |
+| `src/reading/sanitize-en.ts` | new — `hasCjkLeak()`. **`sanitize.ts` itself is untouched** (verbatim rule); this was briefly violated and then reverted — see deviation note below |
+| `src/reading/__tests__/sanitize-en.test.ts` | new — 6 tests |
+| `src/reading/guard.ts` | authored in Phase 1 (see manifest table above) — 4 rule categories now |
+| `src/reading/__tests__/guard.test.ts` | new in Phase 1, expanded — 31 tests |
+| `src/reading/generate.ts`, `summary.ts`, `oracle/index.ts`, `menus/{couple,love-marriage,career}.ts` | import-line fix: now use `buildChartSummaryEn` (was still wired to the Korean `buildChartSummary` after Phase 0 — see deviation note) |
+| `src/reading/generate.ts`, `summary.ts`, `menus/_generate-section.ts` | import-line fix: `hasCjkLeak` now imported from `./sanitize-en` (was briefly added directly to `sanitize.ts` — reverted) |
+
+## Risk probe outcome: `calculateSaju`'s longitude correction is unsafe outside Korea
+
+Read the library's own source (`@fullstackfamily/manseryeok` `dist/index.mjs`, `calculateSaju`):
+
+```js
+const longitudeCorrection = Math.round((135 - longitude) * 4); // minutes
+calcMinute = solarMinute - longitudeCorrection;
+calcHour = solarHour;
+if (calcMinute < 0) { calcMinute += 60; calcHour -= 1; }   // ONE borrow only
+if (calcHour < 0) { calcHour += 24; }                       // ONE wrap only, date never rolls
+```
+
+This is correct for Korea-scale corrections (verified byte-for-byte against both worked README
+examples: Seoul 127° 14:30→13:58, Busan 129° 14:00→13:36) but **silently wrong** for any
+correction beyond about ±60 minutes (roughly ±15° from 135°E) — confirmed empirically: calling
+`calculateSaju` directly with the same date/hour and longitudes 127, 0, -74, -118, -170 all
+returned the *identical* hour pillar, because the single ±1-hour borrow isn't enough to even
+cross a two-hour branch boundary, and a longitude like New York's (-74.006) needs a ~14-hour
+correction that this code cannot express.
+
+**Path taken (per the "if the library clamps/rejects, fall back..." instruction):**
+`international-birth.ts` never calls `calculateSaju` with `applyTimeCorrection: true`. It
+replicates the library's own formula — `correctionMinutes = (longitude - 135) * 4` — itself via
+`Date` UTC arithmetic (which correctly carries minute→hour→day→month→year), applies that to the
+KST-equivalent reading, then calls `calculateSaju(..., { applyTimeCorrection: false })`. Verified:
+(a) byte-for-byte identical output to the library's own corrected result for both README examples,
+(b) a genuinely different, date-rolled hour+day pillar for New York's longitude where the
+library's own path silently no-ops. This is exercised directly in the "risk probe" describe block
+of `international-birth.test.ts`.
+
+## DST gap/ambiguity algorithm — also revised mid-phase
+
+The first implementation used an iterative 2-pass offset guess (guess → correct → re-check). It
+handled every case correctly **except** genuine fall-back ambiguity: the two passes could both
+land on the same (pre-transition) side and never surface the second, equally valid, later
+occurrence. Replaced with an approach that probes two independent reference offsets — noon Jan 1
+and noon Jul 1 of the relevant year — which reliably samples both of a zone's standing offsets
+regardless of hemisphere or which direction a transition runs, without depending on iteration
+convergence order. Policy (documented in code + tested):
+- **Gap** (nonexistent wall-clock time, e.g. 2:30 AM on a spring-forward day): shift the
+  wall-clock reading forward by the gap size and resolve using the post-transition offset.
+- **Ambiguity** (repeated wall-clock time, e.g. 1:30 AM on a fall-back day): choose the **earlier**
+  of the two real instants (the pre-transition/DST offset).
+Covered by dedicated tests for both directions (US spring-forward/fall-back, London BST-start,
+Southern-hemisphere Sydney gap).
+
+## Unknown-birth-time convention
+
+When `hour` is omitted, the day pillar is resolved using **local noon** at the birthplace (run
+through the same timezone + longitude pipeline as a known time), not the raw input date passed
+through untouched — noon minimizes the chance of landing on the wrong side of a date boundary
+relative to assuming midnight or a zero offset. The hour pillar itself remains absent
+(`timeUnknown: true`).
+
+## Golden test results
+
+All in `src/chart-input/__tests__/international-birth.test.ts`, **22/22 passing**:
+- Risk probe (4 tests): both README-exact reproductions, the New York large-correction case, and
+  a 6-value longitude probe (-170 to 170) confirming no throw/wraparound.
+- Golden cities (5 tests): New York winter (EST) and summer (EDT), London on the BST-start
+  boundary day, Berlin (CET), Los Angeles (crosses a calendar day boundary).
+- **Seoul 1988 cross-check**: `internationalBirthToSajuChart` via `Asia/Seoul` for a 1988-06-15
+  birth inside the historical KDT window produces **pillars identical** to
+  `manseryeok-adapter.birthToSajuChart` (the Korea-only path, which uses the hand-rolled
+  `KOREA_DST_PERIODS` table) — confirming Node's bundled ICU tzdata reproduces that table exactly
+  for this case. Plus an internal-consistency check: the same UTC instant, described via two
+  different timezones with the same assumed longitude, yields identical pillars.
+- DST gap/ambiguity (4 tests): US spring-forward gap, US fall-back ambiguity, London BST-start
+  gap, Sydney (Southern-hemisphere) gap.
+- Unknown time (2 tests): local-noon resolution, and a case confirming the resolved date can
+  differ from the raw input date when the noon-based correction crosses a day boundary.
+
+## Glossary — entry count and tone
+
+`src/i18n/glossary-en.ts`: **56 entries** across 8 categories — 5 elements, 10 stems, 12 branches,
+10 Ten Gods, 12 Twelve Stages, 5 Sinsal, 2 polarities, 4 compatibility tiers (the last of these
+was missing from the Phase 0 skeleton — added this phase from `compatibility/types.ts`
+`CompatTier`).
+
+**Judgment call — retoned Ten Gods and Sinsal to a "___ Star" naming convention** (e.g. 비견 →
+"Peer Star" not "Companion", 역마 → "Traveler's Star" not "Traveling Horse") instead of literal
+translations or academic BaZi terms (Rob Wealth, Seven Killings, Hurting Officer) — the target
+reader knows her zodiac sign but has never heard of BaZi, so these read as a friendly astrology
+placement rather than jargon. Enforced by a dedicated completeness-test assertion that every Ten
+God/Sinsal entry matches `/Star'?s?$/`. Stems (Yang Wood, Yin Fire, ...) and branches (Rat,
+Tiger, ...) were left as-is — already accessible/zodiac-like, no retone needed.
+
+Completeness (`glossary-en.test.ts`) cross-checks every category against the engine's own runtime
+behavior: compile-time exhaustiveness guards (`Record<TenGod | TwelveState | SinsalCode |
+CompatTier, true>`) plus exercising `tenGodOf()`/`twelveStateOf()` over every stem/branch
+combination and diffing the produced value set against the glossary's keys.
+
+## Deviations / corrections made while reconciling with more detailed guidance
+
+1. **`sanitize.ts` was briefly edited to add `hasCjkLeak`, then reverted.** The verbatim-file rule
+   applies to it just as much as any other copied file; `hasCjkLeak` now lives in the new sibling
+   `src/reading/sanitize-en.ts` instead. All three consumers (`generate.ts`, `summary.ts`,
+   `menus/_generate-section.ts`) import it from there.
+2. **`generate.ts`, `summary.ts`, `oracle/index.ts`, and the three menu runners were still wired
+   to the Korean `buildChartSummary`** after Phase 0 (the prompt stubs had been swapped to
+   English, but the actual chart-summary feed into those prompts had not). Fixed as part of this
+   phase's internationalization work — see the file table above.
+3. **`internationalBirthToSajuChart`'s DST-resolution algorithm was rewritten mid-phase** after
+   testing revealed the first (iterative 2-pass) version couldn't reliably detect genuine
+   fall-back ambiguity — see the dedicated section above.
+4. **Glossary retone to "___ Star" branding** was not explicitly specified for every single term,
+   only demonstrated via two examples (Peer Star, Traveler's Star) — the remaining 8 Ten Gods and
+   4 Sinsal names were coined following that pattern and the plain-English glosses already
+   present, not translated from any external source.
+
 ## Follow-ups for later phases
 
-- `src/reading/character.ts` and `src/reading/chart-summary.ts` are verbatim per the manifest and
-  still emit Korean-language text (character names/lines, stem/branch/element labels) into what
-  will become the LLM prompt input. Phase 1 (glossary-en, engine internationalization) is expected
-  to address this — `src/i18n/glossary-en.ts` was scaffolded in this phase for that purpose but is
-  not yet wired into `chart-summary.ts`/`character.ts`.
+- `src/reading/character.ts` and `src/reading/chart-summary.ts` remain verbatim (Korean) and are
+  not used by the English pipeline (all consumers now use `chart-summary-en.ts`); an English
+  character-card equivalent is still open for a later phase.
 - `src/compatibility/index.ts` no longer exposes a free tier-teaser string; add an `-en` stub for
-  it if the compatibility feature needs a free teaser before its LLM-based menu copy.
+  it if the compatibility feature needs a free teaser before its LLM-based menu copy. The new
+  `COMPAT_TIER_GLOSSARY` entries are ready for that stub to consume.
 - `src/menus/prompts-en.ts` only covers `love-marriage` / `couple` / `career` — add `newyear` /
   `reunion` / `intimacy` specs if/when those runners are ported from the Korean repo.
+- `guard.ts`'s school-of-thought hedging rules are still TODO, pending Phase 2's finished prompt
+  wording.
+
+## Verification (Phase 1, 2026-07-11)
+
+- `pnpm typecheck` (`tsc --noEmit`): passes, 0 errors.
+- `pnpm test` (`vitest run`): **28 test files passed, 194 tests passed, 0 failed.**

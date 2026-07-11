@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import type { TenGod, TwelveState, SinsalCode } from '../../saju-engine';
 import type { Element } from '../../chart-input/types';
+import type { CompatTier } from '../../compatibility/types';
 import { tenGodOf } from '../../saju-engine/ten-gods';
 import { twelveStateOf } from '../../saju-engine/twelve-states';
 import { stemElement, branchElement, HIDDEN_STEMS } from '../../chart-input/_element-tables';
@@ -15,6 +16,7 @@ import {
   TWELVE_STATE_GLOSSARY,
   SINSAL_GLOSSARY,
   POLARITY_GLOSSARY,
+  COMPAT_TIER_GLOSSARY,
   GLOSSARY_EN,
   glossOf,
 } from '../glossary-en';
@@ -38,6 +40,9 @@ const _sinsalExhaustive: Record<SinsalCode, true> = {
   '도화': true, '홍염': true, '역마': true, '화개': true, '천을귀인': true,
 };
 const _elementExhaustive: Record<Element, true> = { '木': true, '火': true, '土': true, '金': true, '水': true };
+const _compatTierExhaustive: Record<CompatTier, true> = {
+  '천생연분': true, '좋음': true, '무난': true, '노력 필요': true,
+};
 
 describe('glossary-en completeness', () => {
   it('covers all 5 elements', () => {
@@ -99,8 +104,21 @@ describe('glossary-en completeness', () => {
     expect(Object.keys(POLARITY_GLOSSARY)).toHaveLength(2);
   });
 
+  it('covers all 4 compatibility tiers (src/compatibility/types.ts CompatTier)', () => {
+    for (const tier of Object.keys(_compatTierExhaustive) as CompatTier[]) {
+      expect(COMPAT_TIER_GLOSSARY[tier], `missing compat-tier gloss for ${tier}`).toBeDefined();
+    }
+    expect(Object.keys(COMPAT_TIER_GLOSSARY)).toHaveLength(4);
+  });
+
+  it('Ten Gods and Sinsal use the friendly "___ Star" naming convention, not academic BaZi jargon', () => {
+    for (const [ko, entry] of Object.entries({ ...TEN_GOD_GLOSSARY, ...SINSAL_GLOSSARY })) {
+      expect(entry.en, `${ko} should read as "<word> Star"`).toMatch(/Star'?s?$/);
+    }
+  });
+
   it('every entry has non-empty en/gloss text', () => {
-    const all = { ...ELEMENT_GLOSSARY, ...STEM_GLOSSARY, ...BRANCH_GLOSSARY, ...TEN_GOD_GLOSSARY, ...TWELVE_STATE_GLOSSARY, ...SINSAL_GLOSSARY, ...POLARITY_GLOSSARY };
+    const all = { ...ELEMENT_GLOSSARY, ...STEM_GLOSSARY, ...BRANCH_GLOSSARY, ...TEN_GOD_GLOSSARY, ...TWELVE_STATE_GLOSSARY, ...SINSAL_GLOSSARY, ...POLARITY_GLOSSARY, ...COMPAT_TIER_GLOSSARY };
     for (const [ko, entry] of Object.entries(all)) {
       expect(entry.en.length, `empty 'en' for ${ko}`).toBeGreaterThan(0);
       expect(entry.gloss.length, `empty 'gloss' for ${ko}`).toBeGreaterThan(0);

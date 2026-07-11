@@ -28,13 +28,3 @@ const RAW_LEAK_PATTERNS: RegExp[] = [
 export function hasRawLeak(text: string): boolean {
   return RAW_LEAK_PATTERNS.some((re) => re.test(text));
 }
-
-// Han ideographs (hanja) + Hangul syllables — the English (Dotori) reading pipeline must never
-// surface either, even if the model echoes a Saju term verbatim instead of using the glossary's
-// English translation (e.g. writing "庚金" or "경금" instead of "Yang Metal").
-const CJK_LEAK_RE = /[一-鿿가-힣]/;
-
-/** True if `text` contains any hanja or Hangul — for the English pipeline, that's always a leak. */
-export function hasCjkLeak(text: string): boolean {
-  return CJK_LEAK_RE.test(text);
-}

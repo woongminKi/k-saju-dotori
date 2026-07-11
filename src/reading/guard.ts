@@ -1,10 +1,14 @@
 // Content safety — blocks fatalistic death/lifespan predictions, terminal-illness assertions,
-//   and self-harm content from reading output. English rewrite of the Korean guard.ts; same
+//   self-harm content, and definitive medical/pregnancy/legal/financial-guarantee claims from
+//   reading output. English rewrite of the Korean guard.ts (authored in Phase 1); same
 //   {safe, reason?} contract so callers (generate.ts, summary.ts, menus/_generate-section.ts)
 //   are unaffected.
-// Phase 1: broadened each of the 3 categories to cover the common English phrasings an LLM is
-//   likely to produce, matching (and exceeding, for self-harm) the 2-category Korean original's
-//   intent: block certain-death/lifespan claims and certain-terminal-illness claims outright.
+// Phase 1: broadened the original 2 Korean categories (death/lifespan, terminal illness) to cover
+//   the common English phrasings an LLM is likely to produce, kept + broadened the self-harm
+//   category (not present in the Korean original), and added a 4th category blocking definitive
+//   medical/pregnancy/legal/financial-guarantee claims ("you will definitely win the lawsuit",
+//   "guaranteed to get pregnant in...") — a Saju reading should never read as a certain diagnosis,
+//   legal outcome, or financial promise.
 // TODO(Phase 2): add school-of-thought hedging rules once the English prompt content
 //   (frame-en-v1/modules-en/menus prompts-en) is finalized — those rules depend on the exact
 //   hedge language the finished prompts instruct the model to use.
@@ -35,6 +39,14 @@ const UNSAFE_RULES: UnsafeRule[] = [
   {
     re: /\b(kill yourself|end your (own )?life|self[- ]harm|hurt yourself|take your (own )?life|you should die|better off dead)\b/i,
     reason: 'self-harm content',
+  },
+  // ── Definitive medical / pregnancy / legal / financial-guarantee claims — a reading should
+  //    never present itself as a certain diagnosis, guaranteed legal outcome, or promised
+  //    financial result. Hedged language ("this could be a good year to...") is fine; only the
+  //    unconditional "will definitely / guaranteed to" framing is blocked.
+  {
+    re: /\b(you will definitely (win|lose) (the |your )?(lawsuit|case|trial)|guaranteed to (win|lose) (the |your )?(lawsuit|case)|you will definitely get pregnant|guaranteed to (get|become) pregnant|guaranteed pregnancy|you are definitely (pregnant|infertile)|you will (never|definitely never) (be able to )?(have|conceive) (a )?child(ren)?|guaranteed to (win|make) (millions|a fortune)|guaranteed (return|profit|riches)|you will definitely (be rich|become wealthy))\b/i,
+    reason: 'definitive medical/pregnancy/legal/financial-guarantee claim',
   },
 ];
 

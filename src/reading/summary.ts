@@ -4,7 +4,8 @@
 import type { ReadingInput, ReadingDeps } from './types';
 import { buildChartSummaryEn } from './chart-summary-en';
 import { buildTeaserPrompt, TEASER_PROMPT_VERSION } from './prompts/teaser-en';
-import { sanitizeBody, hasRawLeak, hasCjkLeak } from './sanitize';
+import { sanitizeBody, hasRawLeak } from './sanitize';
+import { hasCjkLeak } from './sanitize-en';
 import { checkContentSafety } from './guard';
 
 export { TEASER_PROMPT_VERSION };

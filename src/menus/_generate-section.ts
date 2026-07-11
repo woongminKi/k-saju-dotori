@@ -1,4 +1,5 @@
-import { sanitizeBody, hasRawLeak, hasCjkLeak } from '../reading/sanitize';
+import { sanitizeBody, hasRawLeak } from '../reading/sanitize';
+import { hasCjkLeak } from '../reading/sanitize-en';
 import { checkContentSafety } from '../reading/guard';
 import type { LlmSystem } from '../naming-engine/llm';
 import type { MenuSection, MenuDeps } from './types';

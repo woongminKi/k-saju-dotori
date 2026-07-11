@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeBody, hasRawLeak, hasCjkLeak } from '../sanitize';
+import { sanitizeBody, hasRawLeak } from '../sanitize';
 
 describe('sanitizeBody', () => {
   it('코드펜스를 벗긴다', () => {
@@ -26,20 +26,5 @@ describe('hasRawLeak', () => {
   });
   it('평범한 산문 속 소수(점수 라벨 없음)는 누출로 보지 않는다', () => {
     expect(hasRawLeak('체력이 7.25배쯤 좋아지는 느낌임')).toBe(false);
-  });
-});
-
-describe('hasCjkLeak', () => {
-  it('catches hanja leaking into English output', () => {
-    expect(hasCjkLeak('Your Day Master is 庚金, a Yang Metal type.')).toBe(true);
-  });
-  it('catches Hangul leaking into English output', () => {
-    expect(hasCjkLeak('당신은 단단한 사람이에요')).toBe(true);
-  });
-  it('catches a single stray CJK character embedded in an otherwise clean sentence', () => {
-    expect(hasCjkLeak('You have a strong 木 element influence this year.')).toBe(true);
-  });
-  it('passes clean English prose', () => {
-    expect(hasCjkLeak('You have a strong Wood element influence this year.')).toBe(false);
   });
 });

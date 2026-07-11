@@ -5,7 +5,8 @@ import { createShareCardAction, type ShareCardInput } from '../app/s/actions';
 import { track } from '@vercel/analytics';
 
 /** Creates a share card -> Web Share (falls back to clipboard). Failures never break the result view.
- *  Phase-6 scope reduction: the shared text is generic (no character/tier-specific copy). */
+ *  The card's rich per-user content lives in the /s/[id] page + OG image; title/text here are the
+ *  short share-sheet copy passed by the calling page. */
 export function ShareCardButton({
   input, title, text, label, fullWidth = true,
 }: {

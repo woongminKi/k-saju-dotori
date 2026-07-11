@@ -14,6 +14,6 @@ describe('CompatScoreCard', () => {
     render(<CompatScoreCard score={score} />);
     expect(screen.getByText('88')).toBeInTheDocument();
     expect(screen.getByText('Soulmates')).toBeInTheDocument();
-    expect(screen.getByText(/acorns/)).toBeInTheDocument(); // part of the Soulmates teaser
+    expect(screen.getByText(/soulmate energy/)).toBeInTheDocument(); // tierTeaserEn('천생연분')
   });
 });

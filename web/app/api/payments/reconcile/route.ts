@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getPayment } from '../../../../lib/services';
 import { StubPaymentProvider } from '../../../../lib/payment';
+import { StripePaymentProvider } from '../../../../lib/payment-stripe';
 
 /**
- * Pending-order reconciliation cron. With a real PG (Phase 5, Stripe) this would confirm payments
- * whose approval callback was lost. Under the stub provider, approval is instant and synchronous,
- * so there's nothing to reconcile — this is a near-no-op until Stripe lands. Same secret-guard
- * pattern as retention/sweep.
+ * Pending-order reconciliation cron. With Stripe configured this confirms payments whose approval
+ * callback (and webhook) were lost by re-checking each Checkout Session. Under the stub provider,
+ * approval is instant and synchronous, so there's nothing to reconcile. Same secret-guard pattern
+ * as retention/sweep.
  */
 export async function POST(req: Request) {
   const secret = process.env['PAYMENTS_RECONCILE_SECRET'];
@@ -19,10 +20,13 @@ export async function POST(req: Request) {
   }
 
   const payment = getPayment();
+  if (payment instanceof StripePaymentProvider) {
+    const result = await payment.reconcilePending();
+    return NextResponse.json(result);
+  }
   if (payment instanceof StubPaymentProvider) {
     return NextResponse.json({ skipped: true, reason: 'stub payment mode — no reconciliation needed' });
   }
-  // TODO(P5): call the real provider's reconcile method once Stripe is wired.
   return NextResponse.json({ skipped: true, reason: 'no reconciler available' });
 }
 

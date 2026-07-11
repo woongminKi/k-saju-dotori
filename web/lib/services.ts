@@ -7,6 +7,7 @@ import { supabaseAdmin } from './supabase-admin';
 import type { Store } from './store';
 import type { AuthProvider } from './auth';
 import { StubPaymentProvider } from './payment';
+import { StripePaymentProvider } from './payment-stripe';
 import type { PaymentProvider } from './payment';
 
 // Backend selection by env presence. An ambiguous half-configured state errors immediately.
@@ -16,6 +17,18 @@ function useSupabase(): boolean {
   if (url && key) return true;
   if (url || key) {
     throw new Error('Supabase config incomplete: both NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
+  }
+  return false;
+}
+
+// Real-payment mode when both Stripe server secrets are present. Half-configured state errors immediately
+// (same both-or-neither guard as useSupabase). The publishable key is client-side only, not checked here.
+function stripeConfigured(): boolean {
+  const secretKey = process.env['STRIPE_SECRET_KEY'];
+  const webhookSecret = process.env['STRIPE_WEBHOOK_SECRET'];
+  if (secretKey && webhookSecret) return true;
+  if (secretKey || webhookSecret) {
+    throw new Error('Stripe config incomplete: both STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required');
   }
   return false;
 }
@@ -38,8 +51,11 @@ export function getAuth(): AuthProvider {
   return g.__dotoriAuth;
 }
 export function getPayment(): PaymentProvider {
-  // TODO(Phase 5): select a real StripePaymentProvider when Stripe env is configured. Until then
-  // only the stub provider exists (Stripe integration is deferred to Phase 5).
-  g.__dotoriPayment ??= new StubPaymentProvider(getStore());
+  g.__dotoriPayment ??= stripeConfigured()
+    ? new StripePaymentProvider(getStore(), {
+        secretKey: process.env['STRIPE_SECRET_KEY']!,
+        siteUrl: process.env['NEXT_PUBLIC_SITE_URL'] ?? 'http://localhost:3000',
+      })
+    : new StubPaymentProvider(getStore());
   return g.__dotoriPayment;
 }

@@ -14,8 +14,12 @@ Status legend: `[ ]` open · `[~]` in progress / partially done · `[x]` done
   registered address, and country/jurisdiction. These feed the Terms and Privacy pages.
 - [ ] **Support email** — currently the placeholder `support@example.com` in `business-info.ts`.
   Replace with a real, monitored support inbox (referenced by Terms, Privacy, and Refund pages).
-- [ ] **Stripe account + live keys** — Phase 5 (real payments) is currently deferred. Needs a Stripe
-  account, then test keys for Phase 5 and live keys (after Stripe review/activation) for launch.
+- [ ] **Stripe test keys** — `StripePaymentProvider` (Checkout Sessions + webhook confirmation +
+  reconciliation) is implemented, typechecked, built, and covered by mocked-SDK tests, but has never
+  run against a real Stripe account. Needs a Stripe account + test-mode secret key + webhook signing
+  secret to verify live checkout, webhook signature verification, and refunds (see
+  `NEEDS_FROM_OWNER.md`, now 🔴). Live keys (after Stripe review/activation) are a separate,
+  later launch item.
 - [~] **Google OAuth production client** — the OAuth client was configured directly in the Supabase
   dashboard on 2026-07-11 (per `NEEDS_FROM_OWNER.md`). Final confirmation via a full sign-in
   round-trip test is still pending.
@@ -34,8 +38,13 @@ Status legend: `[ ]` open · `[~]` in progress / partially done · `[x]` done
 
 ## Engineering
 
-- [ ] **Phase 5 Stripe integration** — deferred and not started. Payments currently run through a
-  stub provider; real Stripe checkout, webhooks, and reconciliation still need to be built.
+- [~] **Phase 5 Stripe integration** — implemented: `web/lib/payment-stripe.ts` (Checkout Session
+  create/confirm/cancel/refund/reconcile), webhook handler at
+  `web/app/api/payments/stripe/webhook/route.ts` (signature-verified, handles
+  `checkout.session.completed`/`async_payment_succeeded`/`expired` and dashboard-initiated
+  `charge.refunded`), provider auto-selected over the stub once `STRIPE_SECRET_KEY` +
+  `STRIPE_WEBHOOK_SECRET` are both set. All green on `typecheck`/`test`/`build` with mocked Stripe —
+  blocked on real test keys for live verification (see Owner-blocked above).
 - [ ] **Production environment variables** — once the owner items above are ready, the production
   env vars (Supabase URL/keys, Anthropic key, payment keys, `CRON_SECRET`, PII encryption key, etc.)
   need to be set on the Vercel project.

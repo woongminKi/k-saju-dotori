@@ -81,9 +81,10 @@ export class StripePaymentProvider implements PaymentProvider {
           },
         }],
         // client_reference_id is the dedicated top-level field for tying a checkout to our own order.
-        // metadata.orderId is a redundant fallback the webhook also reads.
+        // metadata.orderId is a redundant fallback the webhook also reads; the rest is context for
+        // Dashboard triage and the charge.refunded reconciliation lookup (Stripe metadata is string-only).
         client_reference_id: orderId,
-        metadata: { orderId },
+        metadata: { orderId, userId, product, units: String(pkg.units) },
         success_url: `${this.opts.siteUrl}/api/checkout/approve?orderId=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${this.opts.siteUrl}/checkout/cancel?orderId=${orderId}`,
       });
@@ -171,9 +172,23 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   async cancel(orderId: string): Promise<void> {
-    // Existence check is delegated to markOrderCanceled (saves a round-trip) — missing order throws
-    // there, not-pending is a silent no-op (atomic guard). The Stripe session is left to expire on its
-    // own (Stripe auto-expires unpaid sessions) — a cancel call must not fail on a Stripe API error.
+    const order = await this.store.getOrder(orderId);
+    if (!order) throw new Error('Order not found.');
+    // Best-effort expire the Checkout Session so it can no longer be paid after cancellation. A session
+    // that is already expired/completed throws at Stripe — swallow it: expiring is a courtesy, the
+    // markOrderCanceled transition below is the real cancellation and must never fail on a Stripe error.
+    // Zero-charge (points-only) orders have no session (empty pgToken) — nothing to expire.
+    if (order.pgToken) {
+      try {
+        await this.stripe.checkout.sessions.expire(order.pgToken);
+      } catch (error) {
+        console.error('[payment-stripe] session expire failed', {
+          orderId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    // not-pending is a silent no-op (atomic guard).
     await this.store.markOrderCanceled(orderId);
   }
 
@@ -204,6 +219,40 @@ export class StripePaymentProvider implements PaymentProvider {
     if (!won) return;
 
     // 4. Reclaim the granted units + restore spent points.
+    await reclaimRefund(this.store, order);
+  }
+
+  /**
+   * Sync internal state after an operator refunded a charge directly in the Stripe Dashboard — the money
+   * is ALREADY reversed at Stripe (we did NOT call refunds.create ourselves), so unlike refund() there is
+   * no Stripe call to guard and nothing to roll back. Driven by the charge.refunded webhook.
+   */
+  async reclaimDashboardRefund(orderId: string): Promise<void> {
+    const order = await this.store.getOrder(orderId);
+    if (!order) throw new Error('Order not found.');
+    if (order.status !== 'paid') return; // already refunded via our refund() path, or was never paid
+
+    // If some granted units were already used we cannot claw back consumed credits — but the Stripe-side
+    // refund stands regardless of whether we can reclaim. Log for manual handling and return: this must
+    // never throw uncaught from a webhook handler (there is no earlier Stripe call to have "not happened").
+    try {
+      await assertRefundReclaimable(this.store, order);
+    } catch (error) {
+      console.error('[DASHBOARD_REFUND_RECLAIM_FAILED]', {
+        orderId: order.id,
+        userId: order.userId,
+        product: order.product,
+        units: order.units,
+        pointsApplied: order.pointsApplied,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+
+    // paid -> refunded atomic transition. Only the winner reclaims. No Stripe API call — the refund
+    // already happened via the Dashboard.
+    const won = await this.store.markOrderRefunded(order.id);
+    if (!won) return;
     await reclaimRefund(this.store, order);
   }
 

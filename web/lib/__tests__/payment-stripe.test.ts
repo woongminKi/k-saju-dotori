@@ -5,8 +5,10 @@ const stripeState = {
   sessions: new Map<string, Record<string, unknown>>(),
   createdSessions: [] as Record<string, unknown>[],
   refunds: [] as Record<string, unknown>[],
+  expiredSessions: [] as string[],
   nextSessionId: 0,
   createShouldThrow: false,
+  expireShouldThrow: false,
 };
 
 vi.mock('stripe', () => {
@@ -33,6 +35,14 @@ vi.mock('stripe', () => {
         retrieve: vi.fn(async (id: string) => {
           const s = stripeState.sessions.get(id);
           if (!s) throw new Error(`no such session: ${id}`);
+          return s;
+        }),
+        expire: vi.fn(async (id: string) => {
+          if (stripeState.expireShouldThrow) throw new Error('session already complete');
+          const s = stripeState.sessions.get(id);
+          if (!s) throw new Error(`no such session: ${id}`);
+          s.status = 'expired';
+          stripeState.expiredSessions.push(id);
           return s;
         }),
       },
@@ -76,8 +86,10 @@ beforeEach(() => {
   stripeState.sessions.clear();
   stripeState.createdSessions = [];
   stripeState.refunds = [];
+  stripeState.expiredSessions = [];
   stripeState.nextSessionId = 0;
   stripeState.createShouldThrow = false;
+  stripeState.expireShouldThrow = false;
 });
 
 describe('StripePaymentProvider — createCharge', () => {
@@ -263,6 +275,93 @@ describe('StripePaymentProvider — refund', () => {
     await payment.refund(charge.orderId);
     expect(stripeState.refunds).toHaveLength(0);
     expect((await store.getOrder(charge.orderId))?.status).toBe('pending');
+  });
+});
+
+describe('StripePaymentProvider — cancel', () => {
+  it('expires the Stripe session, then cancels the order', async () => {
+    const store = new InMemoryStore();
+    const payment = new StripePaymentProvider(store, OPTS);
+    const charge = await payment.createCharge({ userId: 'u1', units: 1 });
+
+    await payment.cancel(charge.orderId);
+
+    expect(stripeState.expiredSessions).toEqual([charge.pgToken]);
+    expect(stripeState.sessions.get(charge.pgToken)!.status).toBe('expired');
+    expect((await store.getOrder(charge.orderId))?.status).toBe('canceled');
+  });
+
+  it('does not throw when the session expire fails (e.g. already complete) — the cancel still lands', async () => {
+    const store = new InMemoryStore();
+    const payment = new StripePaymentProvider(store, OPTS);
+    const charge = await payment.createCharge({ userId: 'u1', units: 1 });
+    stripeState.expireShouldThrow = true;
+
+    await expect(payment.cancel(charge.orderId)).resolves.toBeUndefined();
+
+    expect(stripeState.expiredSessions).toHaveLength(0);
+    expect((await store.getOrder(charge.orderId))?.status).toBe('canceled');
+  });
+
+  it('does not attempt to expire a zero-charge (points-only) order with no session', async () => {
+    const store = new InMemoryStore();
+    const payment = new StripePaymentProvider(store, OPTS);
+    const pkg = findPackage(1);
+    await grantPoints(store, 'u1', pkg.amountCents, 'referral_referrer', 'ref-1');
+    const charge = await payment.createCharge({ userId: 'u1', units: 1, pointsApplied: pkg.amountCents });
+    expect(charge.pgToken).toBe('');
+
+    await payment.cancel(charge.orderId);
+
+    expect(stripeState.expiredSessions).toHaveLength(0);
+    expect((await store.getOrder(charge.orderId))?.status).toBe('canceled');
+  });
+
+  it('throws for a missing order', async () => {
+    const store = new InMemoryStore();
+    const payment = new StripePaymentProvider(store, OPTS);
+    await expect(payment.cancel('nope')).rejects.toThrow(/not found/i);
+  });
+});
+
+describe('StripePaymentProvider — reclaimDashboardRefund', () => {
+  it('reclaims a fully-unused paid order without calling refunds.create (money already reversed at Stripe)', async () => {
+    const store = new InMemoryStore();
+    const payment = new StripePaymentProvider(store, OPTS);
+    await grantPoints(store, 'u1', 300, 'referral_referrer', 'ref-1');
+    const charge = await payment.createCharge({ userId: 'u1', units: 3, pointsApplied: 300 });
+    markSessionPaid(charge.pgToken);
+    await payment.confirm(charge.orderId, charge.pgToken);
+
+    await payment.reclaimDashboardRefund(charge.orderId);
+
+    expect(stripeState.refunds).toHaveLength(0); // never call Stripe — the dashboard already refunded
+    expect(await walletBalance(store, 'u1')).toBe(0);
+    expect(await pointsBalance(store, 'u1')).toBe(300);
+    expect((await store.getOrder(charge.orderId))?.status).toBe('refunded');
+  });
+
+  it('is a no-op on an order that is not paid (e.g. already refunded via our own path)', async () => {
+    const store = new InMemoryStore();
+    const payment = new StripePaymentProvider(store, OPTS);
+    const charge = await payment.createCharge({ userId: 'u1', units: 1 });
+
+    await expect(payment.reclaimDashboardRefund(charge.orderId)).resolves.toBeUndefined();
+    expect((await store.getOrder(charge.orderId))?.status).toBe('pending');
+  });
+
+  it('does not throw when granted units were already used — logs and leaves the order paid', async () => {
+    const store = new InMemoryStore();
+    const payment = new StripePaymentProvider(store, OPTS);
+    const charge = await payment.createCharge({ userId: 'u1', units: 3 });
+    markSessionPaid(charge.pgToken);
+    await payment.confirm(charge.orderId, charge.pgToken);
+    await spend(store, 'u1', 'solo');
+
+    await expect(payment.reclaimDashboardRefund(charge.orderId)).resolves.toBeUndefined();
+
+    expect(stripeState.refunds).toHaveLength(0);
+    expect((await store.getOrder(charge.orderId))?.status).toBe('paid'); // not transitioned — reclaim was skipped
   });
 });
 

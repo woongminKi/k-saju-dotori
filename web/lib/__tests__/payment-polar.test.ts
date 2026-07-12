@@ -45,7 +45,9 @@ const fetchMock = vi.fn(async (url: unknown, init: RequestInit = {}) => {
       status: 'open',
       amount: PRICE_BY_PRODUCT[productId],
       currency: 'usd',
-      order_id: `polar_order_${id}`, // the Polar order that refund() targets once succeeded
+      // NOTE deliberately NO order_id: verified against the live sandbox (2026-07-12) — Polar's checkout
+      // GET omits the order even when succeeded. refund() must use the /v1/orders/?checkout_id= lookup
+      // below; a fabricated order_id in this mock previously hid a real refund-path bug.
       metadata: body.metadata,
     };
     polarState.checkouts.set(id, checkout);
@@ -58,6 +60,15 @@ const fetchMock = vi.fn(async (url: unknown, init: RequestInit = {}) => {
     const c = polarState.checkouts.get(getMatch[1]!);
     if (!c) return jsonResponse({ error: 'not found' }, 404);
     return jsonResponse(c, 200);
+  }
+
+  const ordersMatch = u.match(/\/v1\/orders\/\?checkout_id=([^&]+)/);
+  if (ordersMatch && method === 'GET') {
+    const checkoutId = decodeURIComponent(ordersMatch[1]!);
+    const c = polarState.checkouts.get(checkoutId);
+    // Mirror the real API: an order exists only once the checkout has succeeded.
+    if (!c || c['status'] !== 'succeeded') return jsonResponse({ items: [] }, 200);
+    return jsonResponse({ items: [{ id: `polar_order_${checkoutId}` }] }, 200);
   }
 
   if (u.endsWith('/v1/refunds') && method === 'POST') {

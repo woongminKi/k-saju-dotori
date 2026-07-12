@@ -252,10 +252,21 @@ export class PolarPaymentProvider implements PaymentProvider {
     await this.store.markOrderCanceled(orderId);
   }
 
-  /** GET the checkout and resolve the Polar order id created on success (the refund API targets an order). */
+  /**
+   * Resolve the Polar order id created on checkout success (the refund API targets an order, not a
+   * checkout). Verified against the live sandbox (2026-07-12): the checkout GET response does NOT carry
+   * an order_id/order field even when status is 'succeeded' — the order must be looked up via
+   * GET /v1/orders/?checkout_id=. The checkout-field read is kept as a cheap first try in case Polar
+   * adds it later.
+   */
   private async resolvePolarOrderId(checkoutId: string): Promise<string> {
     const checkout = await this.polarFetch<PolarCheckout>(`/v1/checkouts/${checkoutId}`);
-    const polarOrderId = checkout.order_id ?? checkout.order?.id;
+    const direct = checkout.order_id ?? checkout.order?.id;
+    if (direct) return direct;
+    const orders = await this.polarFetch<{ items?: Array<{ id: string }> }>(
+      `/v1/orders/?checkout_id=${encodeURIComponent(checkoutId)}&limit=1`,
+    );
+    const polarOrderId = orders.items?.[0]?.id;
     if (!polarOrderId) throw new Error('No Polar order to refund for this checkout.');
     return polarOrderId;
   }

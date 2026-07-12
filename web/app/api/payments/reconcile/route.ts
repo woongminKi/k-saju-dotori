@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { getPayment } from '../../../../lib/services';
 import { StubPaymentProvider } from '../../../../lib/payment';
 import { StripePaymentProvider } from '../../../../lib/payment-stripe';
+import { PolarPaymentProvider } from '../../../../lib/payment-polar';
 
 /**
- * Pending-order reconciliation cron. With Stripe configured this confirms payments whose approval
- * callback (and webhook) were lost by re-checking each Checkout Session. Under the stub provider,
- * approval is instant and synchronous, so there's nothing to reconcile. Same secret-guard pattern
+ * Pending-order reconciliation cron. With Polar (or the dormant Stripe fallback) configured this confirms
+ * payments whose approval callback (and webhook) were lost by re-checking each checkout. Under the stub
+ * provider, approval is instant and synchronous, so there's nothing to reconcile. Same secret-guard pattern
  * as retention/sweep.
  */
 export async function POST(req: Request) {
@@ -20,6 +21,10 @@ export async function POST(req: Request) {
   }
 
   const payment = getPayment();
+  if (payment instanceof PolarPaymentProvider) {
+    const result = await payment.reconcilePending();
+    return NextResponse.json(result);
+  }
   if (payment instanceof StripePaymentProvider) {
     const result = await payment.reconcilePending();
     return NextResponse.json(result);

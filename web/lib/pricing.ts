@@ -16,9 +16,9 @@ export const CREDIT_PACKAGES: CreditPackage[] = [
 
 // Oracle-draw credits — a single short answer, so much cheaper than reading units.
 export const ORACLE_PACKAGES: CreditPackage[] = [
-  { units: 5, amountCents: 99 },
   { units: 12, amountCents: 199 },
   { units: 30, amountCents: 299 },
+  { units: 80, amountCents: 599 },
 ];
 
 export function packagesFor(product: ProductKind): CreditPackage[] {

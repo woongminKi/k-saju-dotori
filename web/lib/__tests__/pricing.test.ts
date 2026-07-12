@@ -12,18 +12,19 @@ describe('pricing', () => {
     expect(findPackage(5).amountCents).toBe(1799);
   });
 
-  it('oracle packages are 5/12/30 units', () => {
-    expect(ORACLE_PACKAGES.map((p) => p.units)).toEqual([5, 12, 30]);
+  it('oracle packages are 12/30/80 units', () => {
+    expect(ORACLE_PACKAGES.map((p) => p.units)).toEqual([12, 30, 80]);
   });
 
   it('oracle price mapping (USD cents)', () => {
-    expect(findPackageFor('oracle', 5).amountCents).toBe(99);
     expect(findPackageFor('oracle', 12).amountCents).toBe(199);
     expect(findPackageFor('oracle', 30).amountCents).toBe(299);
+    expect(findPackageFor('oracle', 80).amountCents).toBe(599);
   });
 
   it('unknown package throws', () => {
     expect(() => findPackage(2)).toThrow();
     expect(() => findPackageFor('oracle', 1)).toThrow();
+    expect(() => findPackageFor('oracle', 5)).toThrow(); // old pack size, removed
   });
 });

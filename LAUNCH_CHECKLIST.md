@@ -14,12 +14,21 @@ Status legend: `[ ]` open · `[~]` in progress / partially done · `[x]` done
   registered address, and country/jurisdiction. These feed the Terms and Privacy pages.
 - [ ] **Support email** — currently the placeholder `support@example.com` in `business-info.ts`.
   Replace with a real, monitored support inbox (referenced by Terms, Privacy, and Refund pages).
-- [ ] **Stripe test keys** — `StripePaymentProvider` (Checkout Sessions + webhook confirmation +
-  reconciliation) is implemented, typechecked, built, and covered by mocked-SDK tests, but has never
-  run against a real Stripe account. Needs a Stripe account + test-mode secret key + webhook signing
-  secret to verify live checkout, webhook signature verification, and refunds (see
-  `NEEDS_FROM_OWNER.md`, now 🔴). Live keys (after Stripe review/activation) are a separate,
-  later launch item.
+- [ ] **Polar sandbox credentials** (PRIMARY payment provider) — `PolarPaymentProvider` (checkout create
+  + confirm-via-retrieve + cancel + refund + reconciliation) and the Standard Webhooks handler at
+  `web/app/api/payments/polar/webhook/route.ts` are implemented, typechecked, built, and covered by tests
+  that mock `fetch` and verify real HMAC signatures — but have never run against a real Polar account.
+  Needs a Polar account + sandbox organization access token + webhook signing secret to verify live
+  checkout, webhook signature verification, and refunds (see `NEEDS_FROM_OWNER.md`, now 🔴). **Unlike
+  Stripe, the Polar sandbox needs no review/approval — it's available immediately on signup.** After
+  getting the token, run `pnpm exec tsx tools/polar-setup.ts` (from `web/`) to create the 6 products and
+  paste the printed `POLAR_PRODUCT_ID_*` lines into `web/.env`. Production activation (seller review:
+  social profile + flow demo) and a production token are separate, later launch items.
+- [ ] **Stripe test keys — DORMANT (superseded by Polar).** Kept, not deleted. Stripe requires a US
+  business entity the owner doesn't have, so payments moved to Polar (a Merchant of Record that supports
+  Korea). `web/lib/payment-stripe.ts`, its webhook route, and its tests remain in place and green, and the
+  provider is still auto-selected as a fallback if Polar is unconfigured — so a future US entity could
+  revive Stripe with no code archaeology. Not a launch blocker in the Polar world.
 - [~] **Google OAuth production client** — the OAuth client was configured directly in the Supabase
   dashboard on 2026-07-11 (per `NEEDS_FROM_OWNER.md`). Final confirmation via a full sign-in
   round-trip test is still pending.
@@ -38,13 +47,23 @@ Status legend: `[ ]` open · `[~]` in progress / partially done · `[x]` done
 
 ## Engineering
 
-- [~] **Phase 5 Stripe integration** — implemented: `web/lib/payment-stripe.ts` (Checkout Session
-  create/confirm/cancel/refund/reconcile), webhook handler at
-  `web/app/api/payments/stripe/webhook/route.ts` (signature-verified, handles
-  `checkout.session.completed`/`async_payment_succeeded`/`expired` and dashboard-initiated
-  `charge.refunded`), provider auto-selected over the stub once `STRIPE_SECRET_KEY` +
-  `STRIPE_WEBHOOK_SECRET` are both set. All green on `typecheck`/`test`/`build` with mocked Stripe —
-  blocked on real test keys for live verification (see Owner-blocked above).
+- [~] **Phase 5 (revised) Polar integration** — implemented: `web/lib/payment-polar.ts`
+  (`PolarPaymentProvider`: checkout create/confirm/cancel/refund/reclaimDashboardRefund/reconcile via raw
+  `fetch` — no SDK, no new npm dep), Standard Webhooks handler at
+  `web/app/api/payments/polar/webhook/route.ts` (`webhook-id`/`webhook-timestamp`/`webhook-signature`
+  verified with base64-decoded `whsec_` secret + constant-time compare + 300s timestamp tolerance; handles
+  `order.paid`/`checkout.expired`/`order.refunded`), signature verification factored into pure testable
+  `web/lib/polar-webhook.ts`, and provider auto-selected over Stripe/stub once `POLAR_ACCESS_TOKEN` +
+  `POLAR_WEBHOOK_SECRET` are both set (3-way precedence in `web/lib/services.ts`). Product ids come from
+  `POLAR_PRODUCT_ID_*` env vars (bootstrapped by `web/tools/polar-setup.ts`). All green on
+  `typecheck`/`test`/`build` with mocked `fetch` + real HMAC signatures — blocked on a real sandbox token
+  for live verification (see Owner-blocked above).
+- [~] **Phase 5 Stripe integration — DORMANT (superseded by Polar).** `web/lib/payment-stripe.ts` (Checkout
+  Session create/confirm/cancel/refund/reconcile) and its webhook handler at
+  `web/app/api/payments/stripe/webhook/route.ts` (handles
+  `checkout.session.completed`/`async_payment_succeeded`/`expired` + dashboard `charge.refunded`) remain in
+  the tree, unchanged and green, as the fallback provider when Polar is unconfigured. Retained for a
+  possible future US-entity revival; not deleted.
 - [ ] **Production environment variables** — once the owner items above are ready, the production
   env vars (Supabase URL/keys, Anthropic key, payment keys, `CRON_SECRET`, PII encryption key, etc.)
   need to be set on the Vercel project.
